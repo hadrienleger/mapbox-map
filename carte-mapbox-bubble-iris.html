@@ -255,7 +255,7 @@
 
       const feature = e.features[0];
       const codeIris = feature.properties[config.idField];
-      window.selectIris(layerId, codeIris);  // <--- On réutilise la fonction commune
+      window.selectGeometry(layerId, codeIris);  // <--- On réutilise la fonction commune
     }
 
     window.updateMapLayers = function(layerId) {
@@ -332,7 +332,7 @@
       });
     };
 
-    window.selectIris = function(layerId, codeIris) {
+    window.selectGeometry = function(layerId, codeIris) {
       const config = layerConfigs[layerId];
       if (!window.map || !config) return;
 
