@@ -64,6 +64,7 @@
      ****************************************************/
     window.map = null; // Variable globale unique
     let currentLayerId = null;
+    let currentChoropleth = null; 
 
     const layerConfigs = {
       iris: {
@@ -91,6 +92,7 @@
         colors: ['#fee5d9', '#fcae91', '#fb6a4a', '#de2d26', '#a50f15', '#67000d'],
         opacity: 0.5,
         clickable: false,
+        isChoropleth: true,
         labels: { enabled: false }
       },
       logementSocial: {
@@ -102,6 +104,7 @@
         colors: ['#eff3ff', '#bdd7e7', '#6baed6', '#3182bd', '#08519c', '#042f6b'],
         opacity: 0.5,
         clickable: false,
+        isChoropleth: true,
         labels: { enabled: false }
       },
       notesInsecurite: {
@@ -113,6 +116,7 @@
         colors: ['#eff3ff', '#bdd7e7', '#6baed6', '#3182bd', '#08519c', '#042f6b'],
         opacity: 0.5,
         clickable: false,
+        isChoropleth: true,
         labels: { enabled: true, field: 'note_sur_20', textSize: 12, color: '#333', haloColor: 'rgba(255,255,255,0.8)', haloWidth: 2 }
       }
     };
@@ -267,6 +271,71 @@
         window.map.setLayoutProperty(layerId + '-labels', 'visibility', 'visible');
       }
     };
+
+    // Gestion des couches choropleths
+    window.showChoroplethLayer = function(layerId) {
+      const config = layerConfigs[layerId];
+      if (!config) return;
+      // Vérifier si c'est bien un choropleth
+      if (!config.isChoropleth) {
+        console.warn(layerId, "n'est pas un choropleth. Use toggleLayer() maybe?");
+        return;
+      }
+
+      // 1) Masquer tout choropleth existant
+      if (currentChoropleth && currentChoropleth !== layerId) {
+        // On le rend invisible
+        window.map.setLayoutProperty(currentChoropleth, 'visibility', 'none');
+        const oldConfig = layerConfigs[currentChoropleth];
+        if (oldConfig?.labels?.enabled) {
+          window.map.setLayoutProperty(currentChoropleth + '-labels', 'visibility', 'none');
+        }
+        // On reset la variable
+        currentChoropleth = null;
+      }
+
+      // 2) Afficher le nouveau
+      window.updateMapLayers(layerId); // -> ajoute le layer si pas déjà présent + setVisibility= visible
+      // 3) Mettre à jour la variable
+      currentChoropleth = layerId;
+    };
+
+    window.hideChoropleth = function() {
+      if (!currentChoropleth) return;
+      const oldConfig = layerConfigs[currentChoropleth];
+      window.map.setLayoutProperty(currentChoropleth, 'visibility', 'none');
+      if (oldConfig?.labels?.enabled) {
+        window.map.setLayoutProperty(currentChoropleth + '-labels', 'visibility', 'none');
+      }
+      currentChoropleth = null;
+    };
+
+    // On-off d'une couche donnée (hors couches choropleths qui sont gérées par les fonctions showChoropleth et hideChoropleth, vu que les couches chorpoleths sont exclusives)
+    window.toggleLayer = function(layerId) {
+      const config = layerConfigs[layerId];
+      if (!config) return;
+
+      // S’il s’agit d’un choropleth, basculer plutôt showChoroplethLayer ?
+      if (config.isChoropleth) {
+        // Soit on fait rien, soit on fait du "toggle" exclusif...
+        console.warn("toggleLayer est conçu pour des layers non-choropleth.");
+        return;
+      }
+
+      // Ajouter le layer si nécessaire
+      addLayer(layerId);
+
+      // Vérifier la visibilité actuelle
+      const currentVisibility = window.map.getLayoutProperty(layerId, 'visibility');
+      const newVisibility = (currentVisibility === 'visible') ? 'none' : 'visible';
+      window.map.setLayoutProperty(layerId, 'visibility', newVisibility);
+
+      // Idem pour les labels
+      if (config.labels?.enabled && window.map.getLayer(layerId + '-labels')) {
+        window.map.setLayoutProperty(layerId + '-labels', 'visibility', newVisibility);
+      }
+    };
+
 
     window.filterIRIS = function(irisString) {
       if (!window.map) {
