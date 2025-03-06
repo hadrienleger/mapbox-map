@@ -248,34 +248,14 @@
     }
 
     let lastClickedFeatureId = null;
+
     function handleLayerClick(e, layerId) {
       const config = layerConfigs[layerId];
       if (!config || !e.features[0]) return;
 
       const feature = e.features[0];
       const codeIris = feature.properties[config.idField];
-      const allIrisFeatures = window.map.queryRenderedFeatures({ layers: [layerId], filter: ['==', ['get', config.idField], codeIris] });
-
-      if (lastClickedFeatureId) {
-        window.map.removeFeatureState({ source: layerId, sourceLayer: config.sourceLayer });
-      }
-
-      allIrisFeatures.forEach(f => {
-        window.map.setFeatureState({ source: layerId, sourceLayer: config.sourceLayer, id: f.id }, { clicked: true });
-      });
-
-      lastClickedFeatureId = feature.id;
-      if (typeof bubble_fn_mapClicked === 'function') {
-        bubble_fn_mapClicked({ output1: layerId, output2: codeIris });
-      }
-    }
-
-    function setFilterableIDs(layerId, listOfIDs) {
-      const config = layerConfigs[layerId];
-      if (window.map && window.map.getLayer(layerId)) {
-        const filter = ["in", ["get", config.idField], ["literal", listOfIDs]];
-        window.map.setFilter(layerId, filter);
-      }
+      window.selectIris(layerId, codeIris);  // <--- On réutilise la fonction commune
     }
 
     window.updateMapLayers = function(layerId) {
@@ -351,6 +331,44 @@
         }
       });
     };
+
+    window.selectIris = function(layerId, codeIris) {
+      const config = layerConfigs[layerId];
+      if (!window.map || !config) return;
+
+      // 1) Réinitialiser l’éventuel ancien IRIS cliqué
+      if (lastClickedFeatureId) {
+        window.map.removeFeatureState({
+          source: layerId,
+          sourceLayer: config.sourceLayer
+        });
+        lastClickedFeatureId = null;
+      }
+
+      // 2) Retrouver la/les features qui portent le codeIris voulu
+      const matchingFeatures = window.map.queryRenderedFeatures({
+        layers: [layerId],
+        filter: ["==", ["get", config.idField], codeIris]
+      });
+      matchingFeatures.forEach(f => {
+        window.map.setFeatureState(
+          { source: layerId, sourceLayer: config.sourceLayer, id: f.id },
+          { clicked: true }
+        );
+      });
+
+      // 3) Mémoriser la dernière feature cliquée et appeler la fonction Bubble
+      if (matchingFeatures.length > 0) {
+        lastClickedFeatureId = matchingFeatures[0].id;
+      }
+      if (typeof bubble_fn_mapClicked === 'function') {
+        bubble_fn_mapClicked({
+          output1: layerId,
+          output2: codeIris
+        });
+      }
+    };
+
 
     // Démarrer l’initialisation
     setTimeout(initializeMap, 100);
