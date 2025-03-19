@@ -71,9 +71,8 @@
         source: { type: 'vector', url: 'mapbox://hadrienleger.ak5sb828' },
         sourceLayer: 'iris-ign-petite-etendue-wgs84-7y17me',
         basePaint: {
-          'fill-color': ['case', ['boolean', ['feature-state', 'clicked'], false], '#b8b8ff', '#7b2cbf'],
-          'fill-opacity': 0.7,
-          'fill-outline-color': '#FFFFFF'
+          'fill-color': ['case', ['boolean', ['feature-state', 'clicked'], false], '#d0a4f7', '#7b2cbf'],
+          'fill-opacity': 0.7
         },
         idField: 'CODE_IRIS',
         clickable: true,
@@ -180,29 +179,29 @@
       }
     }
 
-    function hideAllLayers() {
-          if (!window.map) return;
-          console.log('=== hideAllLayers called ===');
-          Object.keys(layerConfigs).forEach(layerId => {
-            const config = layerConfigs[layerId];
-            if (config.isChoropleth) { // Correction : utiliser isChoropleth
-              if (window.map.getLayer(layerId)) { // Chercher layerId directement
-                window.map.setLayoutProperty(layerId, 'visibility', 'none');
-              }
-              if (config.labels?.enabled && window.map.getLayer(`${layerId}-labels`)) {
-                window.map.setLayoutProperty(`${layerId}-labels`, 'visibility', 'none');
-              }
-            } else {
-              if (window.map.getLayer(layerId)) {
-                window.map.setLayoutProperty(layerId, 'visibility', 'none');
-              }
-              if (config.labels?.enabled && window.map.getLayer(`${layerId}-labels`)) {
-                window.map.setLayoutProperty(`${layerId}-labels`, 'visibility', 'none');
-              }
-            }
-          });
+   /****************************************************
+     * FONCTION hideAllLayers
+     * On masque fill, outline et labels
+     ****************************************************/
+    function hideAllLayers() {  // ****CHANGEMENT****
+      if (!window.map) return;
+      console.log('=== hideAllLayers called ===');
+      Object.keys(layerConfigs).forEach(layerId => {
+        // Fill
+        if (window.map.getLayer(layerId + '-fill')) {
+          window.map.setLayoutProperty(layerId + '-fill', 'visibility', 'none');
         }
-        window.hideAllLayers = hideAllLayers;
+        // Outline
+        if (window.map.getLayer(layerId + '-outline')) {
+          window.map.setLayoutProperty(layerId + '-outline', 'visibility', 'none');
+        }
+        // Labels
+        if (window.map.getLayer(layerId + '-labels')) {
+          window.map.setLayoutProperty(layerId + '-labels', 'visibility', 'none');
+        }
+      });
+    }
+    window.hideAllLayers = hideAllLayers;
 
 function addLayer(layerId) {
   const config = layerConfigs[layerId];
@@ -245,7 +244,7 @@ function addLayer(layerId) {
       fillPaintObj['fill-color'] = [
         'case',
         ['boolean', ['feature-state', 'clicked'], false],
-        '#b8b8ff',
+        '#d0a4f7',
         fillPaintObj['fill-color']
       ];
     }
@@ -346,77 +345,128 @@ function addLayer(layerId) {
             window.map.once('load', () => window.updateMapLayers(layerId));
             return;
           }
-          addLayer(layerId);
-          if (window.map.getLayer(layerId)) window.map.setLayoutProperty(layerId, 'visibility', 'visible');
+
           const config = layerConfigs[layerId];
+          addLayer(layerId);
+
+          // Rendre visible le fill
+          if (window.map.getLayer(layerId + '-fill')) {
+            window.map.setLayoutProperty(layerId + '-fill', 'visibility', 'visible');
+          }
+          // Rendre visible l’outline
+          if (window.map.getLayer(layerId + '-outline')) {
+            window.map.setLayoutProperty(layerId + '-outline', 'visibility', 'visible');
+          }
+          // Rendre visible les labels
           if (config?.labels?.enabled && window.map.getLayer(layerId + '-labels')) {
             window.map.setLayoutProperty(layerId + '-labels', 'visibility', 'visible');
           }
         };
 
+
     // Gestion des couches choropleths
-    window.showChoroplethLayer = function(layerId) {
-          if (!window.map) return;
-          if (!window.map.loaded()) {
-            window.map.once('load', () => window.showChoroplethLayer(layerId));
-            return;
-          }
-          const config = layerConfigs[layerId];
-          if (!config || !config.isChoropleth) {
-            console.warn(`${layerId} n’est pas un choroplèthe`);
-            return;
-          }
+  /****************************************************
+     * showChoroplethLayer(layerId)
+     * => exclusif : on masque l'ancien + on affiche le nouveau
+     ****************************************************/
+    window.showChoroplethLayer = function(layerId) { // ****CHANGEMENT****
+      if (!window.map) return;
+      if (!window.map.loaded()) {
+        window.map.once('load', () => window.showChoroplethLayer(layerId));
+        return;
+      }
+      const config = layerConfigs[layerId];
+      if (!config || !config.isChoropleth) {
+        console.warn(`${layerId} n’est pas un choroplèthe`);
+        return;
+      }
 
-          if (currentChoropleth && currentChoropleth !== layerId) {
-            window.map.setLayoutProperty(currentChoropleth, 'visibility', 'none');
-            const oldConfig = layerConfigs[currentChoropleth];
-            if (oldConfig?.labels?.enabled) {
-              window.map.setLayoutProperty(currentChoropleth + '-labels', 'visibility', 'none');
-            }
-          }
+      // Masquer le choropleth actuel
+      if (currentChoropleth && currentChoropleth !== layerId) {
+        const oldConfig = layerConfigs[currentChoropleth];
+        // On masque fill, outline et labels
+        if (window.map.getLayer(currentChoropleth + '-fill')) {
+          window.map.setLayoutProperty(currentChoropleth + '-fill', 'visibility', 'none');
+        }
+        if (window.map.getLayer(currentChoropleth + '-outline')) {
+          window.map.setLayoutProperty(currentChoropleth + '-outline', 'visibility', 'none');
+        }
+        if (oldConfig?.labels?.enabled && window.map.getLayer(currentChoropleth + '-labels')) {
+          window.map.setLayoutProperty(currentChoropleth + '-labels', 'visibility', 'none');
+        }
+        currentChoropleth = null;
+      }
 
-          window.updateMapLayers(layerId);
-          currentChoropleth = layerId;
-        };
+      // Afficher ce choropleth
+      window.updateMapLayers(layerId);
+      currentChoropleth = layerId;
+    };
 
-    window.hideChoropleth = function() {
+    /****************************************************
+     * hideChoropleth()
+     * => masque le choropleth actif
+     ****************************************************/
+    window.hideChoropleth = function() { // ****CHANGEMENT****
       if (!currentChoropleth) return;
       const oldConfig = layerConfigs[currentChoropleth];
-      window.map.setLayoutProperty(currentChoropleth, 'visibility', 'none');
-      if (oldConfig?.labels?.enabled) {
+      // fill
+      if (window.map.getLayer(currentChoropleth + '-fill')) {
+        window.map.setLayoutProperty(currentChoropleth + '-fill', 'visibility', 'none');
+      }
+      // outline
+      if (window.map.getLayer(currentChoropleth + '-outline')) {
+        window.map.setLayoutProperty(currentChoropleth + '-outline', 'visibility', 'none');
+      }
+      // labels
+      if (oldConfig?.labels?.enabled && window.map.getLayer(currentChoropleth + '-labels')) {
         window.map.setLayoutProperty(currentChoropleth + '-labels', 'visibility', 'none');
       }
       currentChoropleth = null;
     };
 
+
+
+
     // On-off d'une couche donnée (hors couches choropleths qui sont gérées par les fonctions showChoropleth et hideChoropleth, vu que les couches chorpoleths sont exclusives)
-    window.toggleLayer = function(layerId) {
+   window.toggleLayer = function(layerId) { // ****CHANGEMENT****
       const config = layerConfigs[layerId];
       if (!config) return;
 
-      // S’il s’agit d’un choropleth, basculer plutôt showChoroplethLayer ?
       if (config.isChoropleth) {
-        // Soit on fait rien, soit on fait du "toggle" exclusif...
-        console.warn("toggleLayer est conçu pour des layers non-choropleth.");
+        console.warn("toggleLayer est conçu pour des layers non-choropleth. Utilise showChoroplethLayer.");
         return;
       }
 
-      // Ajouter le layer si nécessaire
       addLayer(layerId);
 
-      // Vérifier la visibilité actuelle
-      const currentVisibility = window.map.getLayoutProperty(layerId, 'visibility');
-      const newVisibility = (currentVisibility === 'visible') ? 'none' : 'visible';
-      window.map.setLayoutProperty(layerId, 'visibility', newVisibility);
+      // On se base sur la visibilité du fill pour décider
+      const fillVisibility = window.map.getLayer(layerId + '-fill')
+        ? window.map.getLayoutProperty(layerId + '-fill', 'visibility')
+        : 'none';
+      const newVisibility = (fillVisibility === 'visible') ? 'none' : 'visible';
 
-      // Idem pour les labels
+      // fill
+      if (window.map.getLayer(layerId + '-fill')) {
+        window.map.setLayoutProperty(layerId + '-fill', 'visibility', newVisibility);
+      }
+      // outline
+      if (window.map.getLayer(layerId + '-outline')) {
+        window.map.setLayoutProperty(layerId + '-outline', 'visibility', newVisibility);
+      }
+      // labels
       if (config.labels?.enabled && window.map.getLayer(layerId + '-labels')) {
         window.map.setLayoutProperty(layerId + '-labels', 'visibility', newVisibility);
       }
     };
 
 
-    window.filterIRIS = function(irisString) {
+    /****************************************************
+     * filterIRIS(irisString)
+     * => on veut appliquer un filtre sur la couche "iris"
+     *    => donc on rend "iris-fill" et "iris-outline"
+     *       visibles, on setFilter() sur 'iris-fill' + 'iris-outline' + 'iris-labels'
+     ****************************************************/
+    window.filterIRIS = function(irisString) { // ****CHANGEMENT****
       if (!window.map) {
         console.log("Carte non initialisée, réessai dans 300ms");
         setTimeout(() => window.filterIRIS(irisString), 300);
@@ -435,31 +485,59 @@ function addLayer(layerId) {
         lastClickedFeatureId = null;
       }
 
-      let selectedIds = typeof irisString === 'string' ? irisString.split(',').map(item => item.trim()) : irisString;
-      hideAllLayers();
+      let selectedIds = typeof irisString === 'string'
+        ? irisString.split(',').map(item => item.trim())
+        : irisString;
 
+      hideAllLayers(); // on masque tout
+
+      // Vérifier la source
       if (!window.map.getSource('iris')) {
         console.error("Source 'iris' non trouvée, ajout en cours...");
         window.map.addSource('iris', layerConfigs.iris.source);
       }
-      if (!window.map.getLayer('iris')) addLayer('iris');
 
-      window.map.setLayoutProperty('iris', 'visibility', 'visible');
-      if (window.map.getLayer('iris-labels')) window.map.setLayoutProperty('iris-labels', 'visibility', 'visible');
+      // Ajouter la couche IRIS si besoin
+      addLayer('iris');
 
+      // Rendre visible fill, outline, labels
+      if (window.map.getLayer('iris-fill')) {
+        window.map.setLayoutProperty('iris-fill', 'visibility', 'visible');
+      }
+      if (window.map.getLayer('iris-outline')) {
+        window.map.setLayoutProperty('iris-outline', 'visibility', 'visible');
+      }
+      if (window.map.getLayer('iris-labels')) {
+        window.map.setLayoutProperty('iris-labels', 'visibility', 'visible');
+      }
+
+      // Appliquer un setFilter pour restreindre aux IRIS listés
       try {
         const filter = ['match', ['get', 'CODE_IRIS'], selectedIds, true, false];
-        window.map.setFilter('iris', filter);
-        if (window.map.getLayer('iris-labels')) window.map.setFilter('iris-labels', filter);
+        if (window.map.getLayer('iris-fill')) {
+          window.map.setFilter('iris-fill', filter);
+        }
+        if (window.map.getLayer('iris-outline')) {
+          window.map.setFilter('iris-outline', filter);
+        }
+        if (window.map.getLayer('iris-labels')) {
+          window.map.setFilter('iris-labels', filter);
+        }
 
-        const features = window.map.querySourceFeatures('iris', { sourceLayer: layerConfigs.iris.sourceLayer, filter });
+        // On calcule le bounding box pour l'ensemble
+        const features = window.map.querySourceFeatures('iris', {
+          sourceLayer: layerConfigs.iris.sourceLayer,
+          filter
+        });
         if (features.length > 0) {
           const bounds = new mapboxgl.LngLatBounds();
           features.forEach(feature => {
             if (feature.geometry.type === 'Polygon') {
               feature.geometry.coordinates[0].forEach(coord => bounds.extend(coord));
             } else if (feature.geometry.type === 'MultiPolygon') {
-              feature.geometry.coordinates.forEach(polygon => polygon[0].forEach(coord => bounds.extend(coord)));
+              feature.geometry.coordinates.forEach(polygon =>
+                polygon[0].forEach(coord => bounds.extend(coord))
+              );
             }
           });
           window.map.fitBounds(bounds, { padding: 50 });
@@ -470,21 +548,31 @@ function addLayer(layerId) {
         console.error("Erreur lors de l’application du filtre:", error);
       }
 
+      // Rétablir le clicked si zoom
       window.map.on('zoom', () => {
         if (lastClickedFeatureId) {
-          const feature = window.map.querySourceFeatures('iris', { sourceLayer: layerConfigs.iris.sourceLayer, filter: ['==', ['id'], lastClickedFeatureId] })[0];
+          const feature = window.map.querySourceFeatures('iris', {
+            sourceLayer: layerConfigs.iris.sourceLayer,
+            filter: ['==', ['id'], lastClickedFeatureId]
+          })[0];
           if (feature) {
-            window.map.setFeatureState({ source: 'iris', sourceLayer: layerConfigs.iris.sourceLayer, id: lastClickedFeatureId }, { clicked: true });
+            window.map.setFeatureState(
+              { source: 'iris', sourceLayer: layerConfigs.iris.sourceLayer, id: lastClickedFeatureId },
+              { clicked: true }
+            );
           }
         }
       });
     };
 
+
+  // 1) Réinitialiser l’éventuel feature cliqué
+    // 2) Appliquer setFeatureState
+    // 3) Appeler la fonction Bubble
     window.selectGeometry = function(layerId, codeIris) {
       const config = layerConfigs[layerId];
       if (!window.map || !config) return;
 
-      // 1) Réinitialiser l’éventuel ancien IRIS cliqué
       if (lastClickedFeatureId) {
         window.map.removeFeatureState({
           source: layerId,
@@ -493,11 +581,12 @@ function addLayer(layerId) {
         lastClickedFeatureId = null;
       }
 
-      // 2) Retrouver la/les features qui portent le codeIris voulu
+      // Rechercher les features sur *-fill (ou *-outline, c'est pareil en surface)
       const matchingFeatures = window.map.queryRenderedFeatures({
-        layers: [layerId],
+        layers: [layerId + '-fill'],
         filter: ["==", ["get", config.idField], codeIris]
       });
+
       matchingFeatures.forEach(f => {
         window.map.setFeatureState(
           { source: layerId, sourceLayer: config.sourceLayer, id: f.id },
@@ -505,7 +594,6 @@ function addLayer(layerId) {
         );
       });
 
-      // 3) Mémoriser la dernière feature cliquée et appeler la fonction Bubble
       if (matchingFeatures.length > 0) {
         lastClickedFeatureId = matchingFeatures[0].id;
       }
@@ -516,6 +604,7 @@ function addLayer(layerId) {
         });
       }
     };
+
 
 
     // Démarrer l’initialisation
