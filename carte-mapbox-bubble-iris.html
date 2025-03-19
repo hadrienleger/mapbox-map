@@ -71,7 +71,7 @@
         source: { type: 'vector', url: 'mapbox://hadrienleger.ak5sb828' },
         sourceLayer: 'iris-ign-petite-etendue-wgs84-7y17me',
         basePaint: {
-          'fill-color': ['case', ['boolean', ['feature-state', 'clicked'], false], '#FF0000', '#8338ec'],
+          'fill-color': ['case', ['boolean', ['feature-state', 'clicked'], false], '#b8b8ff', '#7b2cbf'],
           'fill-opacity': 0.7,
           'fill-outline-color': '#FFFFFF'
         },
@@ -95,7 +95,7 @@
         isChoropleth: true,
         labels: { enabled: false }
       },
-      logementSocial: {
+      part_log_soc: {
         source: { type: 'vector', url: 'mapbox://hadrienleger.filosofi2019' },
         sourceLayer: 'c200_filosofi_2019',
         isChoropleth: true,
@@ -107,18 +107,19 @@
         isChoropleth: true,
         labels: { enabled: false }
       },
-      notesInsecurite: {
-        source: { type: 'vector', url: 'mapbox://hadrienleger.7ypxua5r' },
-        sourceLayer: 'communes_securite-2449ue',
-        isChoropleth: true,
-        property: 'note_sur_20',
-        breaks: [5, 10, 15, 20, 25],
-        colors: ['#eff3ff', '#bdd7e7', '#6baed6', '#3182bd', '#08519c', '#042f6b'],
-        opacity: 0.5,
-        clickable: false,
-        isChoropleth: true,
-        labels: { enabled: true, field: 'note_sur_20', textSize: 12, color: '#333', haloColor: 'rgba(255,255,255,0.8)', haloWidth: 2 }
-      }
+  notesInsecurite: {
+  source: { type: 'vector', url: 'mapbox://hadrienleger.7ypxua5r' },
+  sourceLayer: 'communes_securite-2449ue',
+  isChoropleth: true,
+  property: 'note_sur_20',
+  breaks: [6.81, 9.71, 11.6, 13.11, 14.64, 17.58, 20], // 7 seuils
+  colors: ['#10002B', '#240046', '#3C096C', '#5A189A', '#7B2CBF', '9D4EDD', 'C77DFF', 'E0AAFF'], // 8 couleurs
+  opacity: 0.5,
+  clickable: false,
+  labels: { enabled: true, field: 'note_sur_20', textSize: 12, color: '#333', haloColor: 'rgba(255,255,255,0.8)', haloWidth: 2 },
+  minzoom: 8,
+  maxzoom: 22
+}
     };
 
     function initializeMap() {
@@ -180,76 +181,153 @@
     }
 
     function hideAllLayers() {
-      if (!window.map) return;
-      console.log('=== hideAllLayers called ===');
-      Object.keys(layerConfigs).forEach(layerId => {
-        const config = layerConfigs[layerId];
-        if (config.type === 'choropleth') {
-          if (window.map.getLayer(`${layerId}-choropleth`)) {
-            window.map.setLayoutProperty(`${layerId}-choropleth`, 'visibility', 'none');
-          }
-          if (config.labels?.enabled && window.map.getLayer(`${layerId}-labels`)) {
-            window.map.setLayoutProperty(`${layerId}-labels`, 'visibility', 'none');
-          }
-        } else {
-          if (window.map.getLayer(layerId)) {
-            window.map.setLayoutProperty(layerId, 'visibility', 'none');
-          }
-          if (config.labels?.enabled && window.map.getLayer(`${layerId}-labels`)) {
-            window.map.setLayoutProperty(`${layerId}-labels`, 'visibility', 'none');
-          }
+          if (!window.map) return;
+          console.log('=== hideAllLayers called ===');
+          Object.keys(layerConfigs).forEach(layerId => {
+            const config = layerConfigs[layerId];
+            if (config.isChoropleth) { // Correction : utiliser isChoropleth
+              if (window.map.getLayer(layerId)) { // Chercher layerId directement
+                window.map.setLayoutProperty(layerId, 'visibility', 'none');
+              }
+              if (config.labels?.enabled && window.map.getLayer(`${layerId}-labels`)) {
+                window.map.setLayoutProperty(`${layerId}-labels`, 'visibility', 'none');
+              }
+            } else {
+              if (window.map.getLayer(layerId)) {
+                window.map.setLayoutProperty(layerId, 'visibility', 'none');
+              }
+              if (config.labels?.enabled && window.map.getLayer(`${layerId}-labels`)) {
+                window.map.setLayoutProperty(`${layerId}-labels`, 'visibility', 'none');
+              }
+            }
+          });
         }
-      });
+        window.hideAllLayers = hideAllLayers;
+
+function addLayer(layerId) {
+  const config = layerConfigs[layerId];
+  if (!config || !window.map) return;
+
+  if (!window.map.loaded()) {
+    console.log(`Carte non chargée pour ${layerId}, attente...`);
+    window.map.once('load', () => addLayer(layerId));
+    return;
+  }
+
+  // Vérifier si le fill est déjà présent (on suppose qu'on crée fill+outline en même temps)
+  if (window.map.getLayer(layerId + '-fill')) {
+    return; // La couche est déjà là
+  }
+
+  console.log(`Ajout de la couche: ${layerId} (fill + outline)`);
+
+  // 1) Calculer la palette de couleurs si c'est un choropleth
+  let fillPaintObj;
+  if (config.isChoropleth) {
+    const colorExpr = ["step", ["get", config.property], config.colors[0]];
+    config.breaks.forEach((brk, i) => {
+      colorExpr.push(brk);
+      colorExpr.push(config.colors[i + 1]);
+    });
+    fillPaintObj = {
+      'fill-color': colorExpr,
+      'fill-opacity': config.opacity ?? 0.7
+      // On ne met PAS fill-outline-color ici, on va le gérer en "line" plus bas
+    };
+    console.log('Expression choroplèthe:', colorExpr);
+  } else {
+    fillPaintObj = config.basePaint ? { ...config.basePaint } : {
+      'fill-color': '#2C3E50',
+      'fill-opacity': 0.8
+      // idem, pas de fill-outline-color
+    };
+    if (config.useFeatureStateClicked) {
+      fillPaintObj['fill-color'] = [
+        'case',
+        ['boolean', ['feature-state', 'clicked'], false],
+        '#b8b8ff',
+        fillPaintObj['fill-color']
+      ];
     }
-    window.hideAllLayers = hideAllLayers;
+  }
 
-    function addLayer(layerId) {
-      const config = layerConfigs[layerId];
-      if (!config || !window.map || window.map.getLayer(layerId)) return;
+  // 2) Ajouter le calque "fill" (ex: "iris-fill") avant "settlement-subdivision-label"
+  const fillLayerId = layerId + '-fill';
+  try {
+    window.map.addLayer({
+      id: fillLayerId,
+      type: 'fill',
+      source: layerId,                      // La source vectorielle porte le même nom que "layerId"
+      'source-layer': config.sourceLayer,
+      minzoom: config.minzoom,
+      maxzoom: config.maxzoom,
+      paint: fillPaintObj
+    }, 'settlement-subdivision-label');
+    console.log(`Couche fill ${fillLayerId} ajoutée (avant settlement-subdivision-label)`);
+  } catch (error) {
+    console.error(`Erreur lors de l’ajout du fill pour ${layerId}:`, error);
+  }
 
-      let paintObj;
-      if (config.isChoropleth) {
-        const colorExpr = ["step", ["get", config.property], config.colors[0]];
-        config.breaks.forEach((brk, i) => {
-          colorExpr.push(brk);
-          colorExpr.push(config.colors[i + 1]);
-        });
-        paintObj = { 'fill-color': colorExpr, 'fill-opacity': config.opacity ?? 0.7, 'fill-outline-color': '#ffffff' };
-      } else {
-        paintObj = config.basePaint ? { ...config.basePaint } : { 'fill-color': '#2C3E50', 'fill-opacity': 0.8, 'fill-outline-color': '#FFF' };
-        if (config.useFeatureStateClicked) {
-          paintObj['fill-color'] = ['case', ['boolean', ['feature-state', 'clicked'], false], '#FF0000', paintObj['fill-color']];
-        }
+  // 3) Ajouter un calque "line" (ex: "iris-outline") pour le contour
+  const outlineLayerId = layerId + '-outline';
+  try {
+    window.map.addLayer({
+      id: outlineLayerId,
+      type: 'line',
+      source: layerId,
+      'source-layer': config.sourceLayer,
+      minzoom: config.minzoom,
+      maxzoom: config.maxzoom,
+      paint: {
+        'line-color': '#FFFFFF',  // Contour blanc
+        'line-width': 1,         // Épaisseur
+        'line-opacity': 0.8,
+        'line-blur': 0,          // Tu peux tester un léger blur (ex: 0.3)
+      },
+      layout: {
+        'line-join': 'round',    // bords arrondis
+        'line-cap': 'round'
       }
+    }, 'settlement-subdivision-label');
+    console.log(`Couche outline ${outlineLayerId} ajoutée (avant settlement-subdivision-label)`);
+  } catch (error) {
+    console.error(`Erreur lors de l’ajout de l’outline pour ${layerId}:`, error);
+  }
 
+  // 4) Ajouter éventuellement les labels
+  if (config.labels?.enabled) {
+    const labelLayerId = `${layerId}-labels`;
+    try {
       window.map.addLayer({
-        id: layerId,
-        type: 'fill',
+        id: labelLayerId,
+        type: 'symbol',
         source: layerId,
         'source-layer': config.sourceLayer,
-        minzoom: config.minzoom,
-        maxzoom: config.maxzoom,
-        paint: paintObj
-      });
-
-      if (config.labels?.enabled) {
-        const labelLayerId = `${layerId}-labels`;
-        window.map.addLayer({
-          id: labelLayerId,
-          type: 'symbol',
-          source: layerId,
-          'source-layer': config.sourceLayer,
-          layout: { 'text-field': ['get', config.labels.field], 'text-size': config.labels.textSize || 12, 'text-anchor': 'center' },
-          paint: { 'text-color': config.labels.color || '#000', 'text-halo-color': config.labels.haloColor || '#fff', 'text-halo-width': config.labels.haloWidth || 1 }
-        });
-      }
-
-      if (config.clickable) {
-        window.map.on('click', layerId, e => handleLayerClick(e, layerId));
-        window.map.on('mouseenter', layerId, () => window.map.getCanvas().style.cursor = 'pointer');
-        window.map.on('mouseleave', layerId, () => window.map.getCanvas().style.cursor = '');
-      }
+        layout: {
+          'text-field': ['get', config.labels.field],
+          'text-size': config.labels.textSize || 12,
+          'text-anchor': 'center'
+        },
+        paint: {
+          'text-color': config.labels.color || '#000',
+          'text-halo-color': config.labels.haloColor || '#fff',
+          'text-halo-width': config.labels.haloWidth || 1
+        }
+      }, 'settlement-subdivision-label');
+    } catch (error) {
+      console.error(`Erreur lors de l’ajout des labels pour ${layerId}:`, error);
     }
+  }
+
+  // 5) Gérer le “clickable” sur le fill layer
+  //    => On attache les events sur (layerId + '-fill'), pas sur le line.
+  if (config.clickable) {
+    window.map.on('click', fillLayerId, e => handleLayerClick(e, layerId));
+    window.map.on('mouseenter', fillLayerId, () => window.map.getCanvas().style.cursor = 'pointer');
+    window.map.on('mouseleave', fillLayerId, () => window.map.getCanvas().style.cursor = '');
+  }
+}
+
 
     let lastClickedFeatureId = null;
 
@@ -263,42 +341,43 @@
     }
 
     window.updateMapLayers = function(layerId) {
-      if (!window.map) return;
-      addLayer(layerId);
-      if (window.map.getLayer(layerId)) window.map.setLayoutProperty(layerId, 'visibility', 'visible');
-      const config = layerConfigs[layerId];
-      if (config?.labels?.enabled && window.map.getLayer(layerId + '-labels')) {
-        window.map.setLayoutProperty(layerId + '-labels', 'visibility', 'visible');
-      }
-    };
+          if (!window.map) return;
+          if (!window.map.loaded()) {
+            window.map.once('load', () => window.updateMapLayers(layerId));
+            return;
+          }
+          addLayer(layerId);
+          if (window.map.getLayer(layerId)) window.map.setLayoutProperty(layerId, 'visibility', 'visible');
+          const config = layerConfigs[layerId];
+          if (config?.labels?.enabled && window.map.getLayer(layerId + '-labels')) {
+            window.map.setLayoutProperty(layerId + '-labels', 'visibility', 'visible');
+          }
+        };
 
     // Gestion des couches choropleths
     window.showChoroplethLayer = function(layerId) {
-      const config = layerConfigs[layerId];
-      if (!config) return;
-      // Vérifier si c'est bien un choropleth
-      if (!config.isChoropleth) {
-        console.warn(layerId, "n'est pas un choropleth. Use toggleLayer() maybe?");
-        return;
-      }
+          if (!window.map) return;
+          if (!window.map.loaded()) {
+            window.map.once('load', () => window.showChoroplethLayer(layerId));
+            return;
+          }
+          const config = layerConfigs[layerId];
+          if (!config || !config.isChoropleth) {
+            console.warn(`${layerId} n’est pas un choroplèthe`);
+            return;
+          }
 
-      // 1) Masquer tout choropleth existant
-      if (currentChoropleth && currentChoropleth !== layerId) {
-        // On le rend invisible
-        window.map.setLayoutProperty(currentChoropleth, 'visibility', 'none');
-        const oldConfig = layerConfigs[currentChoropleth];
-        if (oldConfig?.labels?.enabled) {
-          window.map.setLayoutProperty(currentChoropleth + '-labels', 'visibility', 'none');
-        }
-        // On reset la variable
-        currentChoropleth = null;
-      }
+          if (currentChoropleth && currentChoropleth !== layerId) {
+            window.map.setLayoutProperty(currentChoropleth, 'visibility', 'none');
+            const oldConfig = layerConfigs[currentChoropleth];
+            if (oldConfig?.labels?.enabled) {
+              window.map.setLayoutProperty(currentChoropleth + '-labels', 'visibility', 'none');
+            }
+          }
 
-      // 2) Afficher le nouveau
-      window.updateMapLayers(layerId); // -> ajoute le layer si pas déjà présent + setVisibility= visible
-      // 3) Mettre à jour la variable
-      currentChoropleth = layerId;
-    };
+          window.updateMapLayers(layerId);
+          currentChoropleth = layerId;
+        };
 
     window.hideChoropleth = function() {
       if (!currentChoropleth) return;
