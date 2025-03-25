@@ -94,13 +94,13 @@
         isChoropleth: true,
         labels: { enabled: false }
       },
-      part_log_soc: {
-        source: { type: 'vector', url: 'mapbox://hadrienleger.filosofi2019' },
-        sourceLayer: 'c200_filosofi_2019',
+      log_soc: {
+        source: { type: 'vector', url: 'mapbox://hadrienleger.4m17bbun' },
+        sourceLayer: 'carte_iris_logsoc_2021-7slbph',
         isChoropleth: true,
         property: 'part_log_soc',
-        breaks: [5, 10, 15, 20, 25],
-        colors: ['#eff3ff', '#bdd7e7', '#6baed6', '#3182bd', '#08519c', '#042f6b'],
+        breaks: [0.039, 0.119, 0.231, 0.38, 0.568, 0.79, 1], // 7 seuils
+        colors: ['#10002B', '#240046', '#3C096C', '#5A189A', '#7B2CBF', '9D4EDD', 'C77DFF', 'E0AAFF'], // 8 couleurs
         opacity: 0.5,
         clickable: false,
         isChoropleth: true,
