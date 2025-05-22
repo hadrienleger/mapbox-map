@@ -193,12 +193,26 @@
               placeholder: 'Rechercher une adresse ou un lieu'
             };
             searchBox.mapboxgl = mapboxgl;
-            searchBox.marker = true;
+            searchBox.marker = false;
             searchBox.bindMap(window.map);
             document.getElementById('search-box-container').appendChild(searchBox);
 
             searchBox.addEventListener('retrieve', (event) => {
               console.log('Résultat de la recherche :', event.detail);
+              const [lon, lat] = event.detail.features[0].geometry.coordinates;
+
+              // 1. Centrer / marquer
+              window.map.flyTo({ center: [lon, lat], zoom: 15 });
+              new mapboxgl.Marker({ color:'#ff0066' })
+                .setLngLat([lon, lat])
+                .addTo(window.map);
+
+              // 2. Passer l'info à Bubble
+              if (typeof bubble_fn_addressSelected === 'function') {
+                bubble_fn_addressSelected({
+                  output1: lon,
+                  output2: lat });
+              }
             });
           } else {
             console.warn('Mapbox Search JS non chargé');
