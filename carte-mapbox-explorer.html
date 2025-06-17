@@ -7,6 +7,8 @@
   <link href="https://api.mapbox.com/mapbox-gl-js/v2.15.0/mapbox-gl.css" rel="stylesheet">
   <script defer src="https://api.mapbox.com/mapbox-gl-js/v2.15.0/mapbox-gl.js"></script>
   <script defer src="https://api.mapbox.com/search-js/v1.0.0/web.js"></script>
+  <!-- Turf pour générer le cercle du second mode de recherche -->
+  <script src="https://cdn.jsdelivr.net/npm/@turf/turf@6.5.0/turf.min.js"></script>
 
   <style>
     .my-map-container {
@@ -50,6 +52,7 @@
       width: 300px;
       zIndex: 1;
     }
+
   </style>
 </head>
 <body>
@@ -63,7 +66,8 @@
      * Code principal JavaScript pour la carte Mapbox
      ****************************************************/
     window.map = null; // Variable globale unique
-    let currentLayerId = null;
+    window.collectivitesData = { type: 'FeatureCollection', features: [] }; // Stocke les données GeoJSON des collectivités
+    window.radiusData = { type: 'FeatureCollection', features: [] }; // Stocke le GeoJSON du cercle    let currentLayerId = null;
     let currentChoropleth = null; 
 
     const layerConfigs = {
@@ -153,6 +157,95 @@
     }
     };
 
+///// ZONE DE RECHERCHE //////
+/* ---------- fonctions globales appelées par Bubble ---------- */
+let   globalBounds = null;     /* ← plus d’appel direct à mapboxgl ici */
+const collectiviteCodes = new Set();   // Pour suivre ce qui est affiché
+
+/* Affiche les polygones des collectivités choisies */
+window.showCollectivitePolygons = function(fc) {
+  if (!window.map) {
+    console.warn("🛑 Map not initialized for showCollectivitePolygons");
+    return;
+  }
+
+  // Sauvegarder les données
+  window.collectivitesData = fc;
+  console.log("✅ Saved collectivites data:", fc.features.length, "features");
+
+  // Ajouter ou mettre à jour la source
+  if (window.map.getSource('collectivites')) {
+    window.map.getSource('collectivites').setData(fc);
+  } else {
+    window.map.addSource('collectivites', { type: 'geojson', data: fc });
+    window.map.addLayer({
+      id: 'collectivites-fill',
+      type: 'fill',
+      source: 'collectivites',
+      paint: { 'fill-color': '#8A2BE2', 'fill-opacity': 0.25 }
+    });
+    window.map.addLayer({
+      id: 'collectivites-outline',
+      type: 'line',
+      source: 'collectivites',
+      paint: { 'line-color': '#8A2BE2', 'line-width': 2 }
+    });
+  }
+
+  // Mémoriser les codes
+  fc.features.forEach(f => collectiviteCodes.add(f.properties.code_insee));
+  console.log("✅ Updated collectiviteCodes:", Array.from(collectiviteCodes));
+
+  // Calculer fitBounds
+  const bbox = turf.bbox(fc);
+  window.map.fitBounds(bbox, { padding: 60, duration: 600 });
+};
+
+window.removeCollectivite = function(code){
+  if (!collectiviteCodes.has(code)) return;
+  collectiviteCodes.delete(code);
+
+  // Filtrer les features restantes
+  const remaining = { type:'FeatureCollection',
+                      features: Array.from(collectiviteCodes).map(c => {
+                        return window.map.getSource('collectivites')
+                                         ._data.features
+                                         .find(f => f.properties.code_insee === c);
+                      }).filter(Boolean) };
+
+  // Mettre à jour la source
+  window.map.getSource('collectivites').setData(remaining);
+
+  // Refit si encore des polygones
+  if (remaining.features.length){
+    const bbox = turf.bbox(remaining);
+    window.map.fitBounds(bbox,{ padding:60, duration:600 });
+  }
+};
+
+window.removeAllCollectivites = function(){
+  collectiviteCodes.clear();
+  if (window.map && window.map.getSource('collectivites')){
+    window.map.removeLayer('collectivites-fill');
+    window.map.removeLayer('collectivites-outline');
+    window.map.removeSource('collectivites');
+  }
+};
+
+/* -------- Filtre des IRIS (inchangé) -------- */
+window.highlightIRIS = function(codes){
+  if (!window.map) {
+    console.warn('highlightIRIS : carte non initialisée');
+    return;
+  }
+  window.map.setFilter(
+    'iris-fill',
+    ['match', ['get','code_iris'], codes, true, false]
+  );
+};
+
+///// FIN DE LA PARTIE ZONE DE RECHERCHE /////
+
     function initializeMap() {
       console.log('Tentative d’initialisation de la carte');
       if (window.map) {
@@ -224,6 +317,179 @@
         console.error('Erreur lors de l’initialisation :', error);
       }
     }
+
+// Paramétrage de la search box externalisée (second mode de définition de zone de recherche)
+
+/* -------- variables globales pour ce mode -------- */
+window.radiusCenter = null;   // {lon,lat}
+window.radiusKm     = 5;      // distance en km
+
+/* Crée le cercle ou le met à jour */
+function drawRadius() {
+  console.log("➡️ drawRadius called with:", { center: window.radiusCenter, radiusKm: window.radiusKm });
+
+  if (!window.map || !window.map.loaded()) {
+    console.warn("🛑 Cannot draw radius: map not loaded");
+    return;
+  }
+
+  if (!window.radiusCenter || typeof window.radiusCenter.lon !== 'number' || typeof window.radiusCenter.lat !== 'number') {
+    console.warn("🛑 Cannot draw radius: invalid or missing radiusCenter");
+    return;
+  }
+
+  if (typeof window.radiusKm !== 'number' || window.radiusKm <= 0) {
+    console.warn("🛑 Cannot draw radius: invalid or missing radiusKm, using default 5km");
+    window.radiusKm = 5; // Valeur par défaut
+  }
+
+  // Générer le GeoJSON du cercle
+  let geojson;
+  try {
+    const circleFeature = turf.circle([window.radiusCenter.lon, window.radiusCenter.lat], window.radiusKm, { steps: 64, units: 'kilometers' });
+    geojson = {
+      type: 'FeatureCollection',
+      features: [circleFeature]
+    };
+  } catch (error) {
+    console.error("🛑 Error generating circle GeoJSON:", error);
+    geojson = { type: 'FeatureCollection', features: [] };
+  }
+
+  // Sauvegarder dans window.radiusData
+  window.radiusData = geojson;
+  console.log("✅ Saved radius data:", geojson.features.length, "features");
+
+  // Mettre à jour ou créer la source et les couches
+  if (window.map.getSource('radius')) {
+    window.map.getSource('radius').setData(geojson);
+    console.log("🔍 Updated radius source");
+  } else {
+    try {
+      window.map.addSource('radius', { type: 'geojson', data: geojson });
+      window.map.addLayer({
+        id: 'radius-fill',
+        type: 'fill',
+        source: 'radius',
+        paint: { 'fill-color': '#8A2BE2', 'fill-opacity': 0.2 }
+      });
+      window.map.addLayer({
+        id: 'radius-outline',
+        type: 'line',
+        source: 'radius',
+        paint: { 'line-color': '#8A2BE2', 'line-width': 2 }
+      });
+      console.log("➕ Added radius source and layers");
+    } catch (error) {
+      console.error("🛑 Error adding radius source or layers:", error);
+    }
+  }
+}
+
+/* Exposé à Bubble : change la distance (km) */
+window.updateRadius = function(km) {
+  console.log("➡️ updateRadius called with:", km);
+  if (typeof km !== 'number' || isNaN(km) || km <= 0) {
+    console.warn("🛑 Invalid radius value, using default 5km");
+    window.radiusKm = 5;
+  } else {
+    window.radiusKm = km;
+  }
+  drawRadius();
+};
+
+/* Exposé à Bubble : efface tout (si onglet switch) */
+window.clearRadius = function() {
+  console.log("➡️ clearRadius called");
+
+  // 1. Supprimer le cercle s’il existe
+  if (window.map && window.map.getSource('radius')) {
+    if (window.map.getLayer('radius-fill')) {
+      window.map.removeLayer('radius-fill');
+      console.log("✅ Removed radius-fill layer");
+    }
+    if (window.map.getLayer('radius-outline')) {
+      window.map.removeLayer('radius-outline');
+      console.log("✅ Removed radius-outline layer");
+    }
+    window.map.removeSource('radius');
+    console.log("✅ Removed radius source");
+  }
+
+  // 2. Supprimer le marqueur centre s’il existe
+  if (window.radiusMarker) {
+    window.radiusMarker.remove();
+    window.radiusMarker = null;
+    console.log("✅ Removed radius marker");
+  }
+
+  // 3. Réinitialiser les variables
+  window.radiusCenter = null;
+  window.radiusKm = null;
+  window.radiusData = { type: 'FeatureCollection', features: [] };
+  console.log("✅ Reset radius variables and data");
+};
+
+/* -------------------------------------------------- */
+/*  Instanciation différée de la SearchBox externe    */
+/* -------------------------------------------------- */
+function initExternalSearch() {
+  if (!document.getElementById('radius-search') || !window.map) {
+    console.log("Waiting for radius-search or map to be ready...");
+    setTimeout(initExternalSearch, 300);
+    return;
+  }
+
+  const sb = new mapboxsearch.MapboxSearchBox();
+  sb.accessToken = mapboxgl.accessToken;
+  sb.options = { types: 'address,poi', language: 'fr', placeholder: 'Tapez une adresse ou le nom d\'un lieu' };
+  sb.mapboxgl = mapboxgl;
+  sb.marker = false;
+  sb.bindMap(window.map);
+
+  sb.addEventListener('retrieve', e => {
+    const [lon, lat] = e.detail.features[0].geometry.coordinates;
+
+    // 1. Stocker le centre
+    window.radiusCenter = { lon, lat };
+    // Définir un rayon par défaut si non défini
+    if (typeof window.radiusKm !== 'number' || window.radiusKm <= 0) {
+      window.radiusKm = 5; // Rayon par défaut
+      console.log("✅ Set default radiusKm to 5");
+    }
+
+    // 2. Placer (ou déplacer) le marqueur central
+    if (!window.radiusMarker) {
+      window.radiusMarker = new mapboxgl.Marker({ color: '#8A2BE2' })
+        .setLngLat([lon, lat])
+        .addTo(window.map);
+    } else {
+      window.radiusMarker.setLngLat([lon, lat]);
+    }
+
+    // 3. Dessiner / mettre à jour le cercle
+    drawRadius();
+
+    // 4. Informer Bubble
+    if (typeof bubble_fn_pointMapboxSearchAPI === 'function') {
+      bubble_fn_pointMapboxSearchAPI({ output1: lon, output2: lat });
+    }
+  });
+
+  sb.addEventListener('clear', () => {
+    // 1. Retirer le marqueur centre s’il existe
+    if (window.radiusMarker) {
+      window.radiusMarker.remove();
+      window.radiusMarker = null;
+    }
+    // 2. Effacer le cercle et réinitialiser les variables
+    window.clearRadius();
+  });
+}
+
+initExternalSearch();   // lance l’attente
+
+// Fin de la définition de la searchbox externalisée (second mode de recherche)
 
    /****************************************************
      * FONCTION hideAllLayers
@@ -631,50 +897,153 @@ window.toggleLabels = function(show) {
   window.map.triggerRepaint();
 };
 
-    /****************************************************
-     * filterIRIS(irisString)
-     * => on veut appliquer un filtre sur la couche "iris"
-     *    => donc on rend "iris-fill" et "iris-outline"
-     *       visibles, on setFilter() sur 'iris-fill' + 'iris-outline' + 'iris-labels'
-     ****************************************************/
-    window.filterIRIS = function(irisString) { // ****CHANGEMENT****
-      if (!window.map) {
-        console.log("Carte non initialisée, réessai dans 300ms");
-        setTimeout(() => window.filterIRIS(irisString), 300);
+/* --------  Zoom / fitBounds sur une liste de codes IRIS (Version avec ajout de couche) -------- */
+window.zoomToIris = function(codes) {
+  console.log("➡️ zoomToIris called with:", codes);
+
+  if (!codes || !Array.isArray(codes) || codes.length === 0) {
+    console.warn("🛑 No valid codes provided");
+    return;
+  }
+
+  if (!window.map) {
+    console.warn("🛑 Map not initialized, retrying in 300ms...");
+    setTimeout(() => window.zoomToIris(codes), 300);
+    return;
+  }
+
+  if (!window.map.loaded()) {
+    console.warn("🛑 Map not loaded, waiting for 'load' event...");
+    window.map.once('load', () => {
+      console.log("✅ Map loaded, retrying zoomToIris");
+      window.zoomToIris(codes);
+    });
+    return;
+  }
+
+  // 0️⃣ Cacher immédiatement les couches collectivités et radius
+  ['collectivites-fill', 'collectivites-outline', 'radius-fill', 'radius-outline'].forEach(id => {
+    if (window.map.getLayer(id)) {
+      window.map.setLayoutProperty(id, 'visibility', 'none');
+      console.log(`✅ Hid layer ${id}`);
+    }
+  });
+
+  // 1️⃣ Nettoyer les couches temporaires IRIS précédentes
+  ['iris-temp', 'iris-temp-outline'].forEach(layerId => {
+    if (window.map.getLayer(layerId)) {
+      window.map.removeLayer(layerId);
+      console.log(`✅ Removed previous ${layerId} layer`);
+    }
+  });
+
+  if (!window.map.getSource('iris')) {
+    console.log("➕ Adding IRIS source...");
+    try {
+      window.map.addSource('iris', layerConfigs['iris'].source);
+    } catch (error) {
+      console.error("🛑 Error adding IRIS source:", error);
+      return;
+    }
+  }
+
+  let targetLayerId = 'iris-fill';
+  if (!window.map.getLayer('iris-fill')) {
+    console.log("➕ Adding temporary IRIS layers 'iris-temp' and 'iris-temp-outline'...");
+    try {
+      // Ajouter la couche de remplissage
+      window.map.addLayer({
+        id: 'iris-temp',
+        type: 'fill',
+        source: 'iris',
+        'source-layer': layerConfigs['iris'].sourceLayer,
+        paint: {
+          'fill-color': '#8A2BE2',
+          'fill-opacity': 0.25
+        },
+        filter: ['match', ['get', 'CODE_IRIS'], codes, true, false]
+      }, 'settlement-subdivision-label');
+
+      // Ajouter une couche de bordure avec line-width: 2
+      window.map.addLayer({
+        id: 'iris-temp-outline',
+        type: 'line',
+        source: 'iris',
+        'source-layer': layerConfigs['iris'].sourceLayer,
+        paint: {
+          'line-color': '#8A2BE2',
+          'line-width': 2,
+          'line-opacity': 1
+        },
+        filter: ['match', ['get', 'CODE_IRIS'], codes, true, false]
+      }, 'settlement-subdivision-label');
+
+      targetLayerId = 'iris-temp';
+    } catch (error) {
+      console.error("🛑 Error adding temporary IRIS layers:", error);
+      return;
+    }
+  } else {
+    console.log("🔍 Using existing IRIS layers...");
+    ['iris-fill', 'iris-outline', 'iris-labels'].forEach(layerId => {
+      if (window.map.getLayer(layerId)) {
+        window.map.setLayoutProperty(layerId, 'visibility', 'visible');
+        if (layerId === 'iris-outline') {
+          window.map.setPaintProperty(layerId, 'line-width', 2);
+          console.log("✅ Updated iris-outline line-width to 2");
+        }
+      }
+    });
+  }
+
+  window.map.once('idle', () => {
+    console.log("✅ Layer rendered, proceeding with filter...");
+
+    const allFeats = window.map.querySourceFeatures('iris', {
+      sourceLayer: layerConfigs['iris'].sourceLayer
+    });
+
+    if (allFeats.length === 0) {
+      console.warn("🛑 Source IRIS encore vide — probable souci de style ou de filtre. On s’arrête ici sans modifier le zoom.");
+      return;
+    }
+
+    applyFilter(allFeats);
+
+    function applyFilter(allFeatures) {
+      console.log("🎯 Applying filter with", allFeatures.length, "features");
+
+      const firstFeat = allFeatures[0];
+      const codeField = Object.keys(firstFeat.properties).find(f => f === 'CODE_IRIS' || codes.includes(String(firstFeat.properties[f])));
+      if (!codeField) {
+        console.error("❌ IRIS code field not found");
+        console.log("🔍 Available properties:", Object.keys(firstFeat.properties));
         return;
       }
 
-      if (!window.map.loaded()) {
-        console.log("Carte non chargée, attente de l’événement 'load'...");
-        window.map.once('load', () => window.filterIRIS(irisString));
+      const matchingFeatures = allFeatures.filter(f =>
+        codes.includes(String(f.properties[codeField]))
+      );
+
+      if (matchingFeatures.length === 0) {
+        console.warn("🛑 No matching features found for codes:", codes);
+        const sampleCodes = allFeatures.slice(0, 5).map(f => f.properties[codeField]);
+        console.log("🔍 Sample codes in data:", sampleCodes);
         return;
       }
 
-      console.log("Application du filtre IRIS avec:", irisString);
-      if (lastClickedFeatureId) {
-        window.map.removeFeatureState({ source: 'iris', sourceLayer: layerConfigs.iris.sourceLayer });
-        lastClickedFeatureId = null;
+      const filter = ['match', ['get', codeField], codes, true, false];
+      window.map.setFilter(targetLayerId, filter);
+      if (window.map.getLayer('iris-outline')) {
+        window.map.setFilter('iris-outline', filter);
+        window.map.setPaintProperty('iris-outline', 'line-width', 2);
+      }
+      if (window.map.getLayer('iris-labels')) {
+        window.map.setFilter('iris-labels', filter);
       }
 
-      let selectedIds = typeof irisString === 'string'
-        ? irisString.split(',').map(item => item.trim())
-        : irisString;
-
-      hideAllLayers(); // on masque tout
-
-      // Vérifier la source
-      if (!window.map.getSource('iris')) {
-        console.error("Source 'iris' non trouvée, ajout en cours...");
-        window.map.addSource('iris', layerConfigs.iris.source);
-      }
-
-      // Ajouter la couche IRIS si besoin
-      addLayer('iris');
-
-      // Rendre visible fill, outline, labels
-      if (window.map.getLayer('iris-fill')) {
-        window.map.setLayoutProperty('iris-fill', 'visibility', 'visible');
-      }
+      window.hideAllLayers();
+      window.map.setLayoutProperty(targetLayerId, 'visibility', 'visible');
       if (window.map.getLayer('iris-outline')) {
         window.map.setLayoutProperty('iris-outline', 'visibility', 'visible');
       }
@@ -682,60 +1051,181 @@ window.toggleLabels = function(show) {
         window.map.setLayoutProperty('iris-labels', 'visibility', 'visible');
       }
 
-      // Appliquer un setFilter pour restreindre aux IRIS listés
-      try {
-        const filter = ['match', ['get', 'CODE_IRIS'], selectedIds, true, false];
-        if (window.map.getLayer('iris-fill')) {
-          window.map.setFilter('iris-fill', filter);
-        }
-        if (window.map.getLayer('iris-outline')) {
-          window.map.setFilter('iris-outline', filter);
-        }
-        if (window.map.getLayer('iris-labels')) {
-          window.map.setFilter('iris-labels', filter);
-        }
+      console.log("✅ Filter applied successfully, keeping current map viewport");
+    }
+  });
+};
 
-        // On calcule le bounding box pour l'ensemble
-        const features = window.map.querySourceFeatures('iris', {
-          sourceLayer: layerConfigs.iris.sourceLayer,
-          filter
-        });
-        if (features.length > 0) {
-          const bounds = new mapboxgl.LngLatBounds();
-          features.forEach(feature => {
-            if (feature.geometry.type === 'Polygon') {
-              feature.geometry.coordinates[0].forEach(coord => bounds.extend(coord));
-            } else if (feature.geometry.type === 'MultiPolygon') {
-              feature.geometry.coordinates.forEach(polygon =>
-                polygon[0].forEach(coord => bounds.extend(coord))
-              );
-            }
-          });
-          window.map.fitBounds(bounds, { padding: 50 });
-        } else {
-          console.warn("Aucune feature trouvée pour les IDs:", selectedIds);
-        }
-      } catch (error) {
-        console.error("Erreur lors de l’application du filtre:", error);
+window.resetRecherche = function() {
+  console.log("➡️ resetRecherche called");
+
+  if (!window.map) {
+    console.warn("⚠️ Map not initialized, retrying in 300ms...");
+    setTimeout(window.resetRecherche, 300);
+    return;
+  }
+
+  if (!window.map.loaded()) {
+    console.warn("🛑 Map not loaded, waiting for 'load' event...");
+    window.map.once('load', () => {
+      console.log("✅ Map loaded, retrying resetRecherche");
+      window.resetRecherche();
+    });
+    return;
+  }
+
+  // 1. Supprimer les couches temporaires IRIS
+  ['iris-temp', 'iris-temp-outline'].forEach(layerId => {
+    if (window.map.getLayer(layerId)) {
+      window.map.removeLayer(layerId);
+      console.log(`✅ Removed ${layerId} layer`);
+    }
+  });
+
+  // 2. Masquer et réinitialiser les filtres des couches IRIS existantes
+  ['iris-fill', 'iris-outline', 'iris-labels'].forEach(layerId => {
+    if (window.map.getLayer(layerId)) {
+      window.map.setLayoutProperty(layerId, 'visibility', 'none');
+      window.map.setFilter(layerId, null);
+      console.log(`✅ Hid and reset filter for ${layerId}`);
+      if (layerId === 'iris-outline') {
+        window.map.setPaintProperty(layerId, 'line-width', 2);
+        console.log("✅ Reset iris-outline line-width to 2");
       }
+    }
+  });
 
-      // Rétablir le clicked si zoom
-      window.map.on('zoom', () => {
-        if (lastClickedFeatureId) {
-          const feature = window.map.querySourceFeatures('iris', {
-            sourceLayer: layerConfigs.iris.sourceLayer,
-            filter: ['==', ['id'], lastClickedFeatureId]
-          })[0];
-          if (feature) {
-            window.map.setFeatureState(
-              { source: 'iris', sourceLayer: layerConfigs.iris.sourceLayer, id: lastClickedFeatureId },
-              { clicked: true }
-            );
-          }
-        }
-      });
-    };
+  // 3. Restaurer les données en fonction de la méthode utilisée
+  // Initialiser window.radiusData si nécessaire
+  if (!window.radiusData || !window.radiusData.features) {
+    window.radiusData = { type: 'FeatureCollection', features: [] };
+    console.log("✅ Initialized empty radiusData");
+  }
 
+  if (window.radiusData.features.length > 0 && window.radiusCenter && typeof window.radiusKm === 'number' && window.radiusKm > 0) {
+    // Méthode 2 : Restaurer le cercle
+    console.log("🔄 Restoring radius (method 2)");
+    if (!window.map.getSource('radius')) {
+      console.log("➕ Recreating radius source...");
+      try {
+        window.map.addSource('radius', {
+          type: 'geojson',
+          data: window.radiusData
+        });
+      } catch (error) {
+        console.error("🔴 Error recreating radius source:", error);
+        return;
+      }
+    } else {
+      console.log("🔍 Updating radius source data...");
+      window.map.getSource('radius').setData(window.radiusData);
+    }
+
+    if (!window.map.getLayer('radius-fill')) {
+      console.log("➕ Adding radius-fill layer...");
+      try {
+        window.map.addLayer({
+          id: 'radius-fill',
+          type: 'fill',
+          source: 'radius',
+          paint: { 'fill-color': '#8A2BE2', 'fill-opacity': 0.2 }
+        });
+      } catch (error) {
+        console.error("🔴 Error adding radius-fill layer:", error);
+      }
+    } else {
+      window.map.setLayoutProperty('radius-fill', 'visibility', 'visible');
+      console.log("✅ Made radius-fill visible");
+    }
+
+    if (!window.map.getLayer('radius-outline')) {
+      console.log("➕ Adding radius-outline layer...");
+      try {
+        window.map.addLayer({
+          id: 'radius-outline',
+          type: 'line',
+          source: 'radius',
+          paint: { 'line-color': '#8A2BE2', 'line-width': 2 }
+        });
+      } catch (error) {
+        console.error("🔴 Error adding radius-outline layer:", error);
+      }
+    } else {
+      window.map.setLayoutProperty('radius-outline', 'visibility', 'visible');
+      console.log("✅ Made radius-outline visible");
+    }
+
+    // Restaurer le marqueur
+    if (!window.radiusMarker && window.radiusCenter) {
+      console.log("➕ Recreating radius marker...");
+      try {
+        window.radiusMarker = new mapboxgl.Marker({ color: '#8A2BE2' })
+          .setLngLat([window.radiusCenter.lon, window.radiusCenter.lat])
+          .addTo(window.map);
+      } catch (error) {
+        console.error("🔴 Error recreating radius marker:", error);
+      }
+    }
+
+    console.log("✅ Radius restored, keeping current map viewport");
+  } else if (window.collectivitesData?.features?.length > 0) {
+    // Méthode 1 : Restaurer les collectivités
+    console.log("🔄 Restoring collectivites (method 1)");
+    if (!window.map.getSource('collectivites')) {
+      console.log("➕ Recreating collectivites source...");
+      try {
+        window.map.addSource('collectivites', {
+          type: 'geojson',
+          data: window.collectivitesData
+        });
+      } catch (error) {
+        console.error("🔴 Error recreating collectivites source:", error);
+        return;
+      }
+    } else {
+      console.log("🔍 Updating collectivites source data...");
+      window.map.getSource('collectivites').setData(window.collectivitesData);
+    }
+
+    if (!window.map.getLayer('collectivites-fill')) {
+      console.log("➕ Adding collectivites-fill layer...");
+      try {
+        window.map.addLayer({
+          id: 'collectivites-fill',
+          type: 'fill',
+          source: 'collectivites',
+          paint: { 'fill-color': '#8A2BE2', 'fill-opacity': 0.25 }
+        });
+      } catch (error) {
+        console.error("🔴 Error adding collectivites-fill layer:", error);
+      }
+    } else {
+      window.map.setLayoutProperty('collectivites-fill', 'visibility', 'visible');
+      console.log("✅ Made collectivites-fill visible");
+    }
+
+    if (!window.map.getLayer('collectivites-outline')) {
+      console.log("➕ Adding collectivites-outline layer...");
+      try {
+        window.map.addLayer({
+          id: 'collectivites-outline',
+          type: 'line',
+          source: 'collectivites',
+          paint: { 'line-color': '#8A2BE2', 'line-width': 2 }
+        });
+      } catch (error) {
+        console.error("🔴 Error adding collectivites-outline layer:", error);
+      }
+    } else {
+      window.map.setLayoutProperty('collectivites-outline', 'visibility', 'visible');
+      console.log("✅ Made collectivites-outline visible");
+    }
+
+    console.log("✅ Collectivités restored, keeping current map viewport");
+  } else {
+    console.warn("⚠️ No data available to restore (neither collectivites nor radius)");
+  }
+};
 
   // 1) Réinitialiser l’éventuel feature cliqué
     // 2) Appliquer setFeatureState
@@ -776,6 +1266,14 @@ window.toggleLabels = function(show) {
       }
     };
 
+window.zoomToIrisQueued = function(codes){
+  if (!window.map || !window.map.loaded()) {
+    console.log("Map pas prête, attente pour zoomToIris...");
+    setTimeout(() => window.zoomToIrisQueued(codes), 300);
+  } else {
+    window.zoomToIris(codes);
+  }
+};
 
 
     // Démarrer l’initialisation
