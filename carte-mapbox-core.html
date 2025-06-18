@@ -232,18 +232,6 @@ window.removeAllCollectivites = function(){
   }
 };
 
-/* -------- Filtre des IRIS (inchangé) -------- */
-window.highlightIRIS = function(codes){
-  if (!window.map) {
-    console.warn('highlightIRIS : carte non initialisée');
-    return;
-  }
-  window.map.setFilter(
-    'iris-fill',
-    ['match', ['get','code_iris'], codes, true, false]
-  );
-};
-
 ///// FIN DE LA PARTIE ZONE DE RECHERCHE /////
 
     function initializeMap() {
@@ -318,8 +306,9 @@ window.highlightIRIS = function(codes){
       }
     }
 
-// Paramétrage de la search box externalisée (second mode de définition de zone de recherche)
+// PARAMETRAGE DES SEARCHBOX EXTERNALISEES
 
+// Paramétrage du rayon (Trouver / Second mode de recherche)
 /* -------- variables globales pour ce mode -------- */
 window.radiusCenter = null;   // {lon,lat}
 window.radiusKm     = 5;      // distance en km
@@ -430,13 +419,14 @@ window.clearRadius = function() {
   console.log("✅ Reset radius variables and data");
 };
 
+
 /* -------------------------------------------------- */
-/*  Instanciation différée de la SearchBox externe    */
+/*  A)  SearchBox « Trouver »    */
 /* -------------------------------------------------- */
-function initExternalSearch() {
+function initExternalSearch_Trouver() {
   if (!document.getElementById('radius-search') || !window.map) {
     console.log("Waiting for radius-search or map to be ready...");
-    setTimeout(initExternalSearch, 300);
+    setTimeout(initExternalSearch_Trouver, 300);
     return;
   }
 
@@ -446,6 +436,11 @@ function initExternalSearch() {
   sb.mapboxgl = mapboxgl;
   sb.marker = false;
   sb.bindMap(window.map);
+
+  const host = document.getElementById('radius-search');  // le placeholder Bubble
+  host.innerHTML = '';            // au cas où
+  host.appendChild(sb);           // <-- c’est cette ligne qui manquait
+  sb.style.width = '100%';        // pleine largeur
 
   sb.addEventListener('retrieve', e => {
     const [lon, lat] = e.detail.features[0].geometry.coordinates;
@@ -487,9 +482,103 @@ function initExternalSearch() {
   });
 }
 
-initExternalSearch();   // lance l’attente
+initExternalSearch_Trouver();   // lance l’attente
 
-// Fin de la définition de la searchbox externalisée (second mode de recherche)
+/* -------------------------------------------------- */
+/*  FIN A)  SearchBox « Trouver »                     */
+/* -------------------------------------------------- */
+
+/* -------------------------------------------------- */
+/*  B)  SearchBox « Explorer » – centrée et focus     */
+/* -------------------------------------------------- */
+
+function initExternalSearch_Explorer () {
+  const anchor = document.getElementById('mapbox-searchbox');          // le faux HTML
+  const host   = document.getElementById('global-searchbox-container'); // le groupe Bubble
+
+  if (!anchor || !host || !window.map) {
+    setTimeout(initExternalSearch_Explorer, 300);
+    return;
+  }
+
+  /* 1. Crée la SearchBox Mapbox */
+  const sb = new mapboxsearch.MapboxSearchBox();
+  sb.accessToken = mapboxgl.accessToken;
+  sb.options = {
+    types       : 'address,poi',
+    language    : 'fr',
+    placeholder : 'Tapez une adresse ou un lieu'
+  };
+  sb.mapboxgl = mapboxgl;
+  sb.marker   = false;
+  sb.bindMap(window.map);
+
+  /* 2. Vide le conteneur puis insère la SearchBox */
+  host.innerHTML = '';          // ⚠️ on enlève le placeholder qui bloquait les clics
+  host.appendChild(sb);
+
+  /* 3. Style du conteneur : reste dans le flux, centre le contenu */
+  Object.assign(host.style, {
+    position       : 'relative',   // le groupe reste “normal”
+    display        : 'flex',
+    alignItems     : 'center',     // centre verticalement
+    justifyContent : 'center',     // centre horizontalement
+    pointerEvents  : 'auto',       // reçoit bien les clics
+    zIndex         : 3000          // au-dessus des autres groupes Bubble
+  });
+
+  /* 4. Style de la SearchBox elle-même */
+  sb.style.width = '100%';        // occupe toute la largeur du groupe
+  sb.style.minWidth = '280px';    // limite max si tu veux
+  sb.style.maxWidth = '600px';    // limite max si tu veux
+
+  /* 5. Le dropdown doit rester devant tout */
+  const style = document.createElement('style');
+  style.textContent = `
+    .mapbox-searchbox__suggestions { z-index: 99999 !important; }
+    .mapbox-searchbox              { z-index: 99998 !important; }
+  `;
+  document.head.appendChild(style);
+
+  /* 6. Callbacks vers Bubble */
+sb.addEventListener('retrieve', e => {
+  const [lon, lat] = e.detail.features[0].geometry.coordinates;
+
+  /* A) centrer / zoomer */
+  window.map.flyTo({ center: [lon, lat], zoom: 15 });
+
+  /* B) placer ou déplacer le marqueur  🆕 */
+  if (!window.addressMarker) {
+    window.addressMarker = new mapboxgl.Marker({ color: '#ff0066' })  // rose fuchsia ?
+                              .setLngLat([lon, lat])
+                              .addTo(window.map);
+  } else {
+    window.addressMarker.setLngLat([lon, lat]);
+  }
+
+  /* C) prévenir Bubble (inchangé) */
+    if (typeof bubble_fn_pointMapboxSearchAPI === 'function') {
+      bubble_fn_pointMapboxSearchAPI({ output1: lon, output2: lat });
+    }
+});
+
+  /* D) Suppression du marqueur */
+  sb.addEventListener('clear', () => {
+    if (window.addressMarker) {
+      window.addressMarker.remove();
+      window.addressMarker = null;
+    }
+});
+
+
+  console.log('✅ SearchBox externe initialisée – centrée et 100 % cliquable');
+}
+
+initExternalSearch_Explorer();  // lance l’attente
+
+/* -------------------------------------------------- */
+/*  FIN B)  SearchBox « Explorer » – centrée et focus     */
+/* -------------------------------------------------- */
 
    /****************************************************
      * FONCTION hideAllLayers
@@ -898,7 +987,7 @@ window.toggleLabels = function(show) {
 };
 
 /* --------  Zoom / fitBounds sur une liste de codes IRIS (Version avec ajout de couche) -------- */
-window.zoomToIris = function(codes) {
+window.zoomToIris = function(codes, focusCode = null) {
   console.log("➡️ zoomToIris called with:", codes);
 
   if (!codes || !Array.isArray(codes) || codes.length === 0) {
@@ -911,6 +1000,9 @@ window.zoomToIris = function(codes) {
     setTimeout(() => window.zoomToIris(codes), 300);
     return;
   }
+
+// Dans le cadre de la sélection des IRIS
+window.lastIrisList = codes.slice();   // copie défensive
 
   if (!window.map.loaded()) {
     console.warn("🛑 Map not loaded, waiting for 'load' event...");
@@ -1052,6 +1144,7 @@ window.zoomToIris = function(codes) {
       }
 
       console.log("✅ Filter applied successfully, keeping current map viewport");
+      applySelectionPaint(codes, focusCode);
     }
   });
 };
@@ -1264,16 +1357,53 @@ window.resetRecherche = function() {
           output2: codeIris
         });
       }
+      if (layerId === 'iris'){          // on ne s’embête pas avec les choroplethes
+   applySelectionPaint(window.lastIrisList || [], codeIris);
+}
     };
 
-window.zoomToIrisQueued = function(codes){
+window.zoomToIrisQueued = function(codes, focusCode = null){
   if (!window.map || !window.map.loaded()) {
     console.log("Map pas prête, attente pour zoomToIris...");
-    setTimeout(() => window.zoomToIrisQueued(codes), 300);
+    setTimeout(() => window.zoomToIrisQueued(codes, focusCode), 300);
   } else {
-    window.zoomToIris(codes);
+    window.zoomToIris(codes, focusCode);
   }
 };
+
+    // Fonction qui va permettre la sélection des IRIS
+function applySelectionPaint(allCodes, focusCode){
+  // 1.  couleur de fond pour TOUS les IRIS affichés
+  const baseFilter = ['match', ['get', 'CODE_IRIS'], allCodes, true, false];
+  window.map.setFilter('iris-fill'        , baseFilter);
+  window.map.setFilter('iris-outline'     , baseFilter);
+  if (window.map.getLayer('iris-temp')) {          // cas où on utilise la couche temporaire
+    window.map.setFilter('iris-temp'      , baseFilter);
+    window.map.setFilter('iris-temp-outline', baseFilter);
+  }
+
+  // 2.  “focus” éventuel ➜ feature-state { clicked:true }
+  //     on commence par tout remettre à false
+  const feats = window.map.querySourceFeatures('iris', {
+      sourceLayer: layerConfigs['iris'].sourceLayer,
+      filter: baseFilter
+  });
+  feats.forEach(f =>
+    window.map.setFeatureState(
+      { source:'iris', sourceLayer:layerConfigs['iris'].sourceLayer, id:f.id },
+      { clicked:false })
+  );
+
+  if (focusCode){
+    const f = feats.find(ff => ff.properties.CODE_IRIS === focusCode);
+    if (f){
+      window.map.setFeatureState(
+        { source:'iris', sourceLayer:layerConfigs['iris'].sourceLayer, id:f.id },
+        { clicked:true });
+    }
+  }
+}
+
 
 
     // Démarrer l’initialisation
