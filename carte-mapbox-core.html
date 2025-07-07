@@ -1141,13 +1141,8 @@ window.resetRecherche = function() {
     return;
   }
 
-  // 1. Supprimer les couches temporaires IRIS
-  ['iris-temp', 'iris-temp-outline'].forEach(layerId => {
-    if (window.map.getLayer(layerId)) {
-      window.map.removeLayer(layerId);
-      console.log(`✅ Removed ${layerId} layer`);
-    }
-  });
+  // 1. Supprimer les couches temporaires IRIS (supprimé pour l'instant)
+
 
   // 2. Masquer et réinitialiser les filtres des couches IRIS existantes
   ['iris-fill', 'iris-outline', 'iris-labels'].forEach(layerId => {
