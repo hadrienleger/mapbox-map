@@ -1380,27 +1380,52 @@ window.resetRecherche = function() {
   // 1) Réinitialiser l’éventuel feature cliqué
     // 2) Appliquer setFeatureState
     // 3) Appeler la fonction Bubble
-    window.selectGeometry = function(layerId, codeIris) {
-      const config = layerConfigs[layerId];
-      if (!window.map || !config) return;
+window.selectGeometry = function(layerId, codeIris) {
+  const config = layerConfigs[layerId];
+  if (!window.map || !config) {
+    console.error("🛑 Map or config not available for selectGeometry");
+    return;
+  }
 
-    // --- Nouveau : met à jour le halo jaune ---
-window.map.setFilter('iris-selected-fill',
-  ['==', ['get', 'CODE_IRIS'], codeIris]);
-window.map.setFilter('iris-selected-outline',
-  ['==', ['get', 'CODE_IRIS'], codeIris]);
+  console.log(`✅ Selecting IRIS with CODE_IRIS: ${codeIris}`);
 
+  // 1. Réinitialiser les filtres des couches de sélection
+  ['iris-selected-fill', 'iris-selected-outline'].forEach(layerId => {
+    if (window.map.getLayer(layerId)) {
+      window.map.setFilter(layerId, ['==', ['get', 'CODE_IRIS'], '']); // Masquer d'abord
+    }
+  });
 
-if (typeof bubble_fn_mapClicked === 'function') {
-  bubble_fn_mapClicked(layerId, codeIris);   // 2 arguments positionnels
-}
+  // 2. Appliquer le filtre pour l'IRIS cliqué
+  ['iris-selected-fill', 'iris-selected-outline'].forEach(layerId => {
+    if (window.map.getLayer(layerId)) {
+      window.map.setFilter(layerId, ['==', ['get', 'CODE_IRIS'], codeIris]);
+      window.map.setLayoutProperty(layerId, 'visibility', 'visible');
+      console.log(`✅ Set filter and visibility for ${layerId}`);
+    } else {
+      console.warn(`🛑 Layer ${layerId} not found`);
+    }
+  });
 
+  // 3. Remonter les couches de sélection au-dessus des autres
+  if (window.map.getLayer('iris-selected-fill')) window.map.moveLayer('iris-selected-fill', 'iris-labels');
+  if (window.map.getLayer('iris-selected-outline')) window.map.moveLayer('iris-selected-outline', 'iris-labels');
 
-      if (layerId === 'iris'){          // on ne s’embête pas avec les choroplethes
-   applySelectionPaint(window.lastIrisList || [], codeIris);
+  // 4. Forcer le rendu
+  window.map.triggerRepaint();
+  console.log("✅ Triggered repaint for selection");
 
-}
-    };
+  // 5. Envoyer l’info à Bubble
+  if (typeof bubble_fn_mapClicked === 'function') {
+    bubble_fn_mapClicked({ output1: layerId, output2: codeIris });
+    console.log(`✅ Called bubble_fn_mapClicked with layerId: ${layerId}, codeIris: ${codeIris}`);
+  }
+
+  // 6. Supprimer l'appel à applySelectionPaint pour éviter les conflits
+  // if (layerId === 'iris') {
+  //   applySelectionPaint(window.lastIrisList || [], codeIris);
+  // }
+};
 
 window.zoomToIrisQueued = function(codes, focusCode = null){
   if (!window.map || !window.map.loaded()) {
