@@ -722,7 +722,7 @@ let fillPaintObj;
     }
   }
 /* ----------  Ajout UNIQUE des couches de sélection  ---------- */
-if (layerId === 'iris') {                   // on ne le fait qu'une fois
+if (layerId === 'iris') {
   /* Remplissage du polygone sélectionné */
   if (!window.map.getLayer('iris-selected-fill')) {
     window.map.addLayer({
@@ -731,11 +731,14 @@ if (layerId === 'iris') {                   // on ne le fait qu'une fois
       source: 'iris',
       'source-layer': layerConfigs['iris'].sourceLayer,
       paint: {
-        'fill-color': 'rgba(255,215,0,0.35)',   // jaune or translucide
+        'fill-color': 'rgba(255,215,0,0.35)', // jaune or translucide
         'fill-opacity': 0.8
       },
-      filter: ['==', ['get', 'CODE_IRIS'], '']  // ← vide au départ
-    }, 'iris-outline');                         // juste AU-DESSUS du contour
+      filter: ['==', ['get', 'CODE_IRIS'], ''], // vide au départ
+      layout: {
+        'visibility': 'none' // Masqué par défaut
+      }
+    }, 'iris-labels'); // Placer sous les étiquettes pour éviter de masquer les labels
     console.log('➕ Couche iris-selected-fill ajoutée');
   }
 
@@ -747,11 +750,15 @@ if (layerId === 'iris') {                   // on ne le fait qu'une fois
       source: 'iris',
       'source-layer': layerConfigs['iris'].sourceLayer,
       paint: {
-        'line-color': '#FFD700',   // jaune or
-        'line-width': 3
+        'line-color': '#FFD700', // jaune or
+        'line-width': 3,
+        'line-opacity': 1
       },
-      filter: ['==', ['get', 'CODE_IRIS'], '']
-    }, 'iris-labels');                         // sous les étiquettes
+      filter: ['==', ['get', 'CODE_IRIS'], ''], // vide au départ
+      layout: {
+        'visibility': 'none' // Masqué par défaut
+      }
+    }, 'iris-labels'); // Placer sous les étiquettes
     console.log('➕ Couche iris-selected-outline ajoutée');
   }
 }
