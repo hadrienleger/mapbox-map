@@ -1390,13 +1390,12 @@ window.map.setFilter('iris-selected-fill',
 window.map.setFilter('iris-selected-outline',
   ['==', ['get', 'CODE_IRIS'], codeIris]);
 
-    
-      if (typeof bubble_fn_mapClicked === 'function') {
-        bubble_fn_mapClicked({
-          output1: layerId,
-          output2: codeIris
-        });
-      }
+
+if (typeof bubble_fn_mapClicked === 'function') {
+  bubble_fn_mapClicked(layerId, codeIris);   // 2 arguments positionnels
+}
+
+
       if (layerId === 'iris'){          // on ne s’embête pas avec les choroplethes
    applySelectionPaint(window.lastIrisList || [], codeIris);
 
