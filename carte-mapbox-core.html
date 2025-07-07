@@ -256,13 +256,13 @@ window.removeAllCollectivites = function(){
           zoom: 10
         });
 
-        window.map.on('load', () => {
-          console.log('Carte chargée avec succès');
-          Object.keys(layerConfigs).forEach(layerId => {
-            if (!window.map.getSource(layerId)) {
-              window.map.addSource(layerId, layerConfigs[layerId].source);
-            }
-          });
+window.map.on('load', () => {
+  console.log('Carte chargée avec succès');
+  Object.keys(layerConfigs).forEach(layerId => {
+    if (layerId !== 'iris' && !window.map.getSource(layerId)) {
+      window.map.addSource(layerId, layerConfigs[layerId].source);
+    }
+  });
 
           if (typeof mapboxsearch !== 'undefined' && mapboxsearch.MapboxSearchBox) {
             const searchBox = new mapboxsearch.MapboxSearchBox();
