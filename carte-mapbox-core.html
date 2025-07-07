@@ -71,26 +71,21 @@
     let currentChoropleth = null; 
 
     const layerConfigs = {
-iris: {
-  source: { type: 'vector', url: 'mapbox://hadrienleger.ak5sb828' },
-  sourceLayer: 'iris-ign-petite-etendue-wgs84-7y17me',
-  basePaint: {
-    'fill-color': ['case', ['boolean', ['feature-state', 'clicked'], false], '#d0a4f7', '#d0a4f7'], // Violet clair pour tous
-    'fill-opacity': ['case', ['boolean', ['feature-state', 'clicked'], false], 0.9, 0.7] // Opacité différente pour sélection
-  },
-  outlinePaint: {
-    'line-color': ['case', ['boolean', ['feature-state', 'clicked'], false], '#E03A3E', '#8A2BE2'], // Rouge framboise pour sélectionné, violet foncé sinon
-    'line-width': ['case', ['boolean', ['feature-state', 'clicked'], false], 3, 2], // Bordure plus épaisse pour sélection
-    'line-opacity': 1
-  },
-  idField: 'CODE_IRIS',
-  clickable: true,
-  useFeatureStateClicked: true,
-  isChoropleth: false,
-  labels: { enabled: true, field: 'NOM_IRIS', textSize: 12, color: '#FFF', haloColor: '#000', haloWidth: 1 },
-  minzoom: 8,
-  maxzoom: 22
-},
+      iris: {
+        source: { type: 'vector', url: 'mapbox://hadrienleger.ak5sb828' },
+        sourceLayer: 'iris-ign-petite-etendue-wgs84-7y17me',
+        basePaint: {
+          'fill-color': ['case', ['boolean', ['feature-state', 'clicked'], false], '#d0a4f7', '#7b2cbf'],
+          'fill-opacity': 0.7
+        },
+        idField: 'CODE_IRIS',
+        clickable: true,
+        useFeatureStateClicked: true,
+        isChoropleth: false,
+        labels: { enabled: true, field: 'NOM_IRIS', textSize: 12, color: '#FFF', haloColor: '#000', haloWidth: 1 },
+        minzoom: 8,
+        maxzoom: 22
+      },
       rev_decl: {
         source: { type: 'vector', url: 'mapbox://hadrienleger.2s705opr' },
         sourceLayer: 'carte_iris_revdecl_2021-dugg0i',
@@ -261,13 +256,13 @@ window.removeAllCollectivites = function(){
           zoom: 10
         });
 
-window.map.on('load', () => {
-  console.log('Carte chargée avec succès');
-  Object.keys(layerConfigs).forEach(layerId => {
-    if (layerId !== 'iris' && !window.map.getSource(layerId)) {
-      window.map.addSource(layerId, layerConfigs[layerId].source);
-    }
-  });
+        window.map.on('load', () => {
+          console.log('Carte chargée avec succès');
+          Object.keys(layerConfigs).forEach(layerId => {
+            if (!window.map.getSource(layerId)) {
+              window.map.addSource(layerId, layerConfigs[layerId].source);
+            }
+          });
 
           if (typeof mapboxsearch !== 'undefined' && mapboxsearch.MapboxSearchBox) {
             const searchBox = new mapboxsearch.MapboxSearchBox();
@@ -585,6 +580,23 @@ initExternalSearch_Explorer();  // lance l’attente
 /*  FIN B)  SearchBox « Explorer » – centrée et focus     */
 /* -------------------------------------------------- */
 
+/* =========  UTILITAIRE  ========== */
+/* =========  UTILITAIRE : rend iris-fill / iris-temp cliquables  ========== */
+function registerIrisClickListeners() {
+  ['iris-fill', 'iris-temp'].forEach(layerId => {
+    if (!window.map.getLayer(layerId)) return;         // couche absente ?
+    /* On évite les doublons : on retire d’abord tout ancien listener */
+    window.map.off('click', layerId, onIrisClick);     
+    window.map.on ('click', layerId, onIrisClick);
+    window.map.on ('mouseenter', layerId, () => window.map.getCanvas().style.cursor = 'pointer');
+    window.map.on ('mouseleave', layerId, () => window.map.getCanvas().style.cursor = '');
+  });
+
+  function onIrisClick(e) {
+    const codeIris = e.features[0].properties['CODE_IRIS'];
+    window.selectGeometry('iris', codeIris);
+  }
+}
    /****************************************************
      * FONCTION hideAllLayers
      * On masque fill, outline et labels
@@ -663,17 +675,15 @@ let fillPaintObj;
   } else {
     console.log(`Couche ${fillLayerId} absente, ajout en cours...`);
     try {
-window.map.addLayer({
-  id: fillLayerId,
-  type: 'fill',
-  source: layerId,
-  'source-layer': config.sourceLayer,
-  minzoom: config.minzoom,
-  maxzoom: config.maxzoom,
-  paint: fillPaintObj,
-  filter: layerId === 'iris' ? ['in', 'CODE_IRIS', ''] : undefined // Filtre vide pour iris
-}, 'settlement-subdivision-label');
-
+      window.map.addLayer({
+        id: fillLayerId,
+        type: 'fill',
+        source: layerId,
+        'source-layer': config.sourceLayer,
+        minzoom: config.minzoom,
+        maxzoom: config.maxzoom,
+        paint: fillPaintObj
+      }, 'settlement-subdivision-label');
       console.log(`Couche ${fillLayerId} ajoutée`);
     } catch (error) {
       console.error(`Erreur lors de l’ajout de ${fillLayerId}:`, error);
@@ -687,25 +697,24 @@ window.map.addLayer({
   } else {
     console.log(`Couche ${outlineLayerId} absente, ajout en cours...`);
     try {
-window.map.addLayer({
-  id: outlineLayerId,
-  type: 'line',
-  source: layerId,
-  'source-layer': config.sourceLayer,
-  minzoom: config.minzoom,
-  maxzoom: config.maxzoom,
-  paint: config.outlinePaint || {
-    'line-color': '#FFFFFF',
-    'line-width': 1,
-    'line-opacity': 0.8,
-    'line-blur': 0
-  },
-  layout: {
-    'line-join': 'round',
-    ' line-cap': 'round'
-  },
-  filter: layerId === 'iris' ? ['in', 'CODE_IRIS', ''] : undefined
-}, 'settlement-subdivision-label');
+      window.map.addLayer({
+        id: outlineLayerId,
+        type: 'line',
+        source: layerId,
+        'source-layer': config.sourceLayer,
+        minzoom: config.minzoom,
+        maxzoom: config.maxzoom,
+        paint: {
+          'line-color': '#FFFFFF',
+          'line-width': 1,
+          'line-opacity': 0.8,
+          'line-blur': 0
+        },
+        layout: {
+          'line-join': 'round',
+          'line-cap': 'round'
+        }
+      }, 'settlement-subdivision-label');
       console.log(`Couche ${outlineLayerId} ajoutée`);
     } catch (error) {
       console.error(`Erreur lors de l’ajout de ${outlineLayerId}:`, error);
@@ -759,25 +768,24 @@ switch (config.labels.labelFormat) {
     } else {
       console.log(`Couche ${labelLayerId} absente, ajout en cours...`);
       try {
-window.map.addLayer({
-    id: labelLayerId,
-    type: 'symbol',
-    source: layerId,
-    'source-layer': config.sourceLayer,
-    minzoom: config.labels.minzoom || 0,
-    maxzoom: config.maxzoom || 22,
-    layout: {
-      'text-field': textFieldExpr,
-      'text-size': config.labels.textSize || 12,
-      'text-anchor': 'center'
-    },
-    paint: {
-      'text-color': config.labels.color || '#000',
-      'text-halo-color': config.labels.haloColor || '#fff',
-      'text-halo-width': config.labels.haloWidth || 1
-    },
-    filter: layerId === 'iris' ? ['in', 'CODE_IRIS', ''] : undefined // Filtre vide pour iris
-  }, 'settlement-subdivision-label');
+        window.map.addLayer({
+          id: labelLayerId,
+          type: 'symbol',
+          source: layerId,
+          'source-layer': config.sourceLayer,
+          minzoom: config.labels.minzoom || 0,
+          maxzoom: config.maxzoom || 22,
+          layout: {
+            'text-field': textFieldExpr,
+            'text-size': config.labels.textSize || 12,
+            'text-anchor': 'center'
+          },
+          paint: {
+            'text-color': config.labels.color || '#000',
+            'text-halo-color': config.labels.haloColor || '#fff',
+            'text-halo-width': config.labels.haloWidth || 1
+          }
+        }, 'settlement-subdivision-label');
         console.log(`Couche ${labelLayerId} ajoutée`);
       } catch (error) {
         console.error(`Erreur lors de l’ajout de ${labelLayerId}:`, error);
@@ -1048,24 +1056,54 @@ window.lastIrisList = codes.slice();   // copie défensive
     }
   }
 
-let targetLayerId = 'iris-fill';
-if (!window.map.getLayer('iris-fill')) {
-  console.log("➕ Adding IRIS layers via addLayer...");
-  try {
-    addLayer('iris');
-  } catch (error) {
-    console.error("🛑 Error adding IRIS layers:", error);
-    return;
-  }
-} else {
-  console.log("🔍 Using existing IRIS layers...");
-  ['iris-fill', 'iris-outline', 'iris-labels'].forEach(layerId => {
-    if (window.map.getLayer(layerId)) {
-      window.map.setLayoutProperty(layerId, 'visibility', 'visible');
-      console.log(`✅ Set ${layerId} visibility to visible`);
+  let targetLayerId = 'iris-fill';
+  if (!window.map.getLayer('iris-fill')) {
+    console.log("➕ Adding temporary IRIS layers 'iris-temp' and 'iris-temp-outline'...");
+    try {
+      // Ajouter la couche de remplissage
+      window.map.addLayer({
+        id: 'iris-temp',
+        type: 'fill',
+        source: 'iris',
+        'source-layer': layerConfigs['iris'].sourceLayer,
+        paint: {
+          'fill-color': '#8A2BE2',
+          'fill-opacity': 0.25
+        },
+        filter: ['match', ['get', 'CODE_IRIS'], codes, true, false]
+      }, 'settlement-subdivision-label');
+
+      // Ajouter une couche de bordure avec line-width: 2
+      window.map.addLayer({
+        id: 'iris-temp-outline',
+        type: 'line',
+        source: 'iris',
+        'source-layer': layerConfigs['iris'].sourceLayer,
+        paint: {
+          'line-color': '#8A2BE2',
+          'line-width': 2,
+          'line-opacity': 1
+        },
+        filter: ['match', ['get', 'CODE_IRIS'], codes, true, false]
+      }, 'settlement-subdivision-label');
+
+      targetLayerId = 'iris-temp';
+    } catch (error) {
+      console.error("🛑 Error adding temporary IRIS layers:", error);
+      return;
     }
-  });
-}
+  } else {
+    console.log("🔍 Using existing IRIS layers...");
+    ['iris-fill', 'iris-outline', 'iris-labels'].forEach(layerId => {
+      if (window.map.getLayer(layerId)) {
+        window.map.setLayoutProperty(layerId, 'visibility', 'visible');
+        if (layerId === 'iris-outline') {
+          window.map.setPaintProperty(layerId, 'line-width', 2);
+          console.log("✅ Updated iris-outline line-width to 2");
+        }
+      }
+    });
+  }
 
   window.map.once('idle', () => {
     console.log("✅ Layer rendered, proceeding with filter...");
@@ -1146,8 +1184,13 @@ window.resetRecherche = function() {
     return;
   }
 
-  // 1. Supprimer les couches temporaires IRIS (supprimé pour l'instant)
-
+  // 1. Supprimer les couches temporaires IRIS
+  ['iris-temp', 'iris-temp-outline'].forEach(layerId => {
+    if (window.map.getLayer(layerId)) {
+      window.map.removeLayer(layerId);
+      console.log(`✅ Removed ${layerId} layer`);
+    }
+  });
 
   // 2. Masquer et réinitialiser les filtres des couches IRIS existantes
   ['iris-fill', 'iris-outline', 'iris-labels'].forEach(layerId => {
@@ -1346,40 +1389,36 @@ window.zoomToIrisQueued = function(codes, focusCode = null){
 };
 
     // Fonction qui va permettre la sélection des IRIS
-function applySelectionPaint(allCodes, focusCode) {
+function applySelectionPaint(allCodes, focusCode){
   // 1.  couleur de fond pour TOUS les IRIS affichés
   const baseFilter = ['match', ['get', 'CODE_IRIS'], allCodes, true, false];
-  window.map.setFilter('iris-fill', baseFilter);
-  window.map.setFilter('iris-outline', baseFilter);
-  if (window.map.getLayer('iris-labels')) {
-    window.map.setFilter('iris-labels', baseFilter);
+  window.map.setFilter('iris-fill'        , baseFilter);
+  window.map.setFilter('iris-outline'     , baseFilter);
+  if (window.map.getLayer('iris-temp')) {          // cas où on utilise la couche temporaire
+    window.map.setFilter('iris-temp'      , baseFilter);
+    window.map.setFilter('iris-temp-outline', baseFilter);
   }
 
   // 2.  “focus” éventuel ➜ feature-state { clicked:true }
   //     on commence par tout remettre à false
   const feats = window.map.querySourceFeatures('iris', {
-    sourceLayer: layerConfigs['iris'].sourceLayer,
-    filter: baseFilter
+      sourceLayer: layerConfigs['iris'].sourceLayer,
+      filter: baseFilter
   });
   feats.forEach(f =>
     window.map.setFeatureState(
-      { source: 'iris', sourceLayer: layerConfigs['iris'].sourceLayer, id: f.id },
-      { clicked: false }
-    )
+      { source:'iris', sourceLayer:layerConfigs['iris'].sourceLayer, id:f.id },
+      { clicked:false })
   );
 
-  if (focusCode) {
+  if (focusCode){
     const f = feats.find(ff => ff.properties.CODE_IRIS === focusCode);
-    if (f) {
+    if (f){
       window.map.setFeatureState(
-        { source: 'iris', sourceLayer: layerConfigs['iris'].sourceLayer, id: f.id },
-        { clicked: true }
-      );
+        { source:'iris', sourceLayer:layerConfigs['iris'].sourceLayer, id:f.id },
+        { clicked:true });
     }
   }
-
-  window.map.triggerRepaint();
-  console.log("✅ Selection paint applied, repaint triggered");
 }
 
 
