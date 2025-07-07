@@ -1039,54 +1039,28 @@ window.lastIrisList = codes.slice();   // copie défensive
     }
   }
 
-  let targetLayerId = 'iris-fill';
-  if (!window.map.getLayer('iris-fill')) {
-    console.log("➕ Adding temporary IRIS layers 'iris-temp' and 'iris-temp-outline'...");
-    try {
-      // Ajouter la couche de remplissage
-      window.map.addLayer({
-        id: 'iris-temp',
-        type: 'fill',
-        source: 'iris',
-        'source-layer': layerConfigs['iris'].sourceLayer,
-        paint: {
-          'fill-color': '#8A2BE2',
-          'fill-opacity': 0.25
-        },
-        filter: ['match', ['get', 'CODE_IRIS'], codes, true, false]
-      }, 'settlement-subdivision-label');
-
-      // Ajouter une couche de bordure avec line-width: 2
-      window.map.addLayer({
-        id: 'iris-temp-outline',
-        type: 'line',
-        source: 'iris',
-        'source-layer': layerConfigs['iris'].sourceLayer,
-        paint: {
-          'line-color': '#8A2BE2',
-          'line-width': 2,
-          'line-opacity': 1
-        },
-        filter: ['match', ['get', 'CODE_IRIS'], codes, true, false]
-      }, 'settlement-subdivision-label');
-
-      targetLayerId = 'iris-temp';
-    } catch (error) {
-      console.error("🛑 Error adding temporary IRIS layers:", error);
-      return;
-    }
-  } else {
-    console.log("🔍 Using existing IRIS layers...");
-    ['iris-fill', 'iris-outline', 'iris-labels'].forEach(layerId => {
-      if (window.map.getLayer(layerId)) {
-        window.map.setLayoutProperty(layerId, 'visibility', 'visible');
-        if (layerId === 'iris-outline') {
-          window.map.setPaintProperty(layerId, 'line-width', 2);
-          console.log("✅ Updated iris-outline line-width to 2");
-        }
-      }
-    });
+let targetLayerId = 'iris-fill';
+if (!window.map.getLayer('iris-fill')) {
+  console.log("➕ Adding IRIS layers via addLayer...");
+  try {
+    addLayer('iris'); // Ajoute iris-fill, iris-outline, iris-labels
+  } catch (error) {
+    console.error("🛑 Error adding IRIS layers:", error);
+    return;
   }
+} else {
+  console.log("🔍 Using existing IRIS layers...");
+  ['iris-fill', 'iris-outline', 'iris-labels'].forEach(layerId => {
+    if (window.map.getLayer(layerId)) {
+      window.map.setLayoutProperty(layerId, 'visibility', 'visible');
+      console.log(`✅ Set ${layerId} visibility to visible`);
+      if (layerId === 'iris-outline') {
+        window.map.setPaintProperty(layerId, 'line-width', 2);
+        console.log("✅ Updated iris-outline line-width to 2");
+      }
+    }
+  });
+}
 
   window.map.once('idle', () => {
     console.log("✅ Layer rendered, proceeding with filter...");
