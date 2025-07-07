@@ -1341,36 +1341,40 @@ window.zoomToIrisQueued = function(codes, focusCode = null){
 };
 
     // Fonction qui va permettre la sélection des IRIS
-function applySelectionPaint(allCodes, focusCode){
+function applySelectionPaint(allCodes, focusCode) {
   // 1.  couleur de fond pour TOUS les IRIS affichés
   const baseFilter = ['match', ['get', 'CODE_IRIS'], allCodes, true, false];
-  window.map.setFilter('iris-fill'        , baseFilter);
-  window.map.setFilter('iris-outline'     , baseFilter);
-  if (window.map.getLayer('iris-temp')) {          // cas où on utilise la couche temporaire
-    window.map.setFilter('iris-temp'      , baseFilter);
-    window.map.setFilter('iris-temp-outline', baseFilter);
+  window.map.setFilter('iris-fill', baseFilter);
+  window.map.setFilter('iris-outline', baseFilter);
+  if (window.map.getLayer('iris-labels')) {
+    window.map.setFilter('iris-labels', baseFilter);
   }
 
   // 2.  “focus” éventuel ➜ feature-state { clicked:true }
   //     on commence par tout remettre à false
   const feats = window.map.querySourceFeatures('iris', {
-      sourceLayer: layerConfigs['iris'].sourceLayer,
-      filter: baseFilter
+    sourceLayer: layerConfigs['iris'].sourceLayer,
+    filter: baseFilter
   });
   feats.forEach(f =>
     window.map.setFeatureState(
-      { source:'iris', sourceLayer:layerConfigs['iris'].sourceLayer, id:f.id },
-      { clicked:false })
+      { source: 'iris', sourceLayer: layerConfigs['iris'].sourceLayer, id: f.id },
+      { clicked: false }
+    )
   );
 
-  if (focusCode){
+  if (focusCode) {
     const f = feats.find(ff => ff.properties.CODE_IRIS === focusCode);
-    if (f){
+    if (f) {
       window.map.setFeatureState(
-        { source:'iris', sourceLayer:layerConfigs['iris'].sourceLayer, id:f.id },
-        { clicked:true });
+        { source: 'iris', sourceLayer: layerConfigs['iris'].sourceLayer, id: f.id },
+        { clicked: true }
+      );
     }
   }
+
+  window.map.triggerRepaint();
+  console.log("✅ Selection paint applied, repaint triggered");
 }
 
 
