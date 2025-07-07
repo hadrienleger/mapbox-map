@@ -721,6 +721,42 @@ let fillPaintObj;
       console.error(`Erreur lors de l’ajout de ${outlineLayerId}:`, error);
     }
   }
+/* ----------  Ajout UNIQUE des couches de sélection  ---------- */
+if (layerId === 'iris') {                   // on ne le fait qu'une fois
+  /* Remplissage du polygone sélectionné */
+  if (!window.map.getLayer('iris-selected-fill')) {
+    window.map.addLayer({
+      id: 'iris-selected-fill',
+      type: 'fill',
+      source: 'iris',
+      'source-layer': layerConfigs['iris'].sourceLayer,
+      paint: {
+        'fill-color': 'rgba(255,215,0,0.35)',   // jaune or translucide
+        'fill-opacity': 0.8
+      },
+      filter: ['==', ['get', 'CODE_IRIS'], '']  // ← vide au départ
+    }, 'iris-outline');                         // juste AU-DESSUS du contour
+    console.log('➕ Couche iris-selected-fill ajoutée');
+  }
+
+  /* Bordure du polygone sélectionné */
+  if (!window.map.getLayer('iris-selected-outline')) {
+    window.map.addLayer({
+      id: 'iris-selected-outline',
+      type: 'line',
+      source: 'iris',
+      'source-layer': layerConfigs['iris'].sourceLayer,
+      paint: {
+        'line-color': '#FFD700',   // jaune or
+        'line-width': 3
+      },
+      filter: ['==', ['get', 'CODE_IRIS'], '']
+    }, 'iris-labels');                         // sous les étiquettes
+    console.log('➕ Couche iris-selected-outline ajoutée');
+  }
+}
+/* ----------  Fin ajout sélection  ---------- */
+
 
 if (config.labels?.enabled) {
   const labelLayerId = `${layerId}-labels`;
@@ -1348,30 +1384,13 @@ window.resetRecherche = function() {
       const config = layerConfigs[layerId];
       if (!window.map || !config) return;
 
-      if (lastClickedFeatureId) {
-        window.map.removeFeatureState({
-          source: layerId,
-          sourceLayer: config.sourceLayer
-        });
-        lastClickedFeatureId = null;
-      }
+    // --- Nouveau : met à jour le halo jaune ---
+window.map.setFilter('iris-selected-fill',
+  ['==', ['get', 'CODE_IRIS'], codeIris]);
+window.map.setFilter('iris-selected-outline',
+  ['==', ['get', 'CODE_IRIS'], codeIris]);
 
-      // Rechercher les features sur *-fill (ou *-outline, c'est pareil en surface)
-      const matchingFeatures = window.map.queryRenderedFeatures({
-        layers: [layerId + '-fill'],
-        filter: ["==", ["get", config.idField], codeIris]
-      });
-
-      matchingFeatures.forEach(f => {
-        window.map.setFeatureState(
-          { source: layerId, sourceLayer: config.sourceLayer, id: f.id },
-          { clicked: true }
-        );
-      });
-
-      if (matchingFeatures.length > 0) {
-        lastClickedFeatureId = matchingFeatures[0].id;
-      }
+    
       if (typeof bubble_fn_mapClicked === 'function') {
         bubble_fn_mapClicked({
           output1: layerId,
@@ -1380,6 +1399,7 @@ window.resetRecherche = function() {
       }
       if (layerId === 'iris'){          // on ne s’embête pas avec les choroplethes
    applySelectionPaint(window.lastIrisList || [], codeIris);
+
 }
     };
 
