@@ -694,7 +694,7 @@ window.map.addLayer({
   'source-layer': config.sourceLayer,
   minzoom: config.minzoom,
   maxzoom: config.maxzoom,
-  paint: {
+  paint: config.outlinePaint || {
     'line-color': '#FFFFFF',
     'line-width': 1,
     'line-opacity': 0.8,
@@ -702,9 +702,9 @@ window.map.addLayer({
   },
   layout: {
     'line-join': 'round',
-    'line-cap': 'round'
+    ' line-cap': 'round'
   },
-  filter: layerId === 'iris' ? ['in', 'CODE_IRIS', ''] : undefined // Filtre vide pour iris
+  filter: layerId === 'iris' ? ['in', 'CODE_IRIS', ''] : undefined
 }, 'settlement-subdivision-label');
       console.log(`Couche ${outlineLayerId} ajoutée`);
     } catch (error) {
