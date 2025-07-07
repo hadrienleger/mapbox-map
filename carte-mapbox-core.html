@@ -71,21 +71,26 @@
     let currentChoropleth = null; 
 
     const layerConfigs = {
-      iris: {
-        source: { type: 'vector', url: 'mapbox://hadrienleger.ak5sb828' },
-        sourceLayer: 'iris-ign-petite-etendue-wgs84-7y17me',
-        basePaint: {
-          'fill-color': ['case', ['boolean', ['feature-state', 'clicked'], false], '#d0a4f7', '#7b2cbf'],
-          'fill-opacity': 0.7
-        },
-        idField: 'CODE_IRIS',
-        clickable: true,
-        useFeatureStateClicked: true,
-        isChoropleth: false,
-        labels: { enabled: true, field: 'NOM_IRIS', textSize: 12, color: '#FFF', haloColor: '#000', haloWidth: 1 },
-        minzoom: 8,
-        maxzoom: 22
-      },
+iris: {
+  source: { type: 'vector', url: 'mapbox://hadrienleger.ak5sb828' },
+  sourceLayer: 'iris-ign-petite-etendue-wgs84-7y17me',
+  basePaint: {
+    'fill-color': ['case', ['boolean', ['feature-state', 'clicked'], false], '#d0a4f7', '#d0a4f7'], // Violet clair pour tous
+    'fill-opacity': ['case', ['boolean', ['feature-state', 'clicked'], false], 0.9, 0.7] // Opacité différente pour sélection
+  },
+  outlinePaint: {
+    'line-color': ['case', ['boolean', ['feature-state', 'clicked'], false], '#E03A3E', '#8A2BE2'], // Rouge framboise pour sélectionné, violet foncé sinon
+    'line-width': ['case', ['boolean', ['feature-state', 'clicked'], false], 3, 2], // Bordure plus épaisse pour sélection
+    'line-opacity': 1
+  },
+  idField: 'CODE_IRIS',
+  clickable: true,
+  useFeatureStateClicked: true,
+  isChoropleth: false,
+  labels: { enabled: true, field: 'NOM_IRIS', textSize: 12, color: '#FFF', haloColor: '#000', haloWidth: 1 },
+  minzoom: 8,
+  maxzoom: 22
+}
       rev_decl: {
         source: { type: 'vector', url: 'mapbox://hadrienleger.2s705opr' },
         sourceLayer: 'carte_iris_revdecl_2021-dugg0i',
