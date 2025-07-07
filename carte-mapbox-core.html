@@ -1052,7 +1052,7 @@ let targetLayerId = 'iris-fill';
 if (!window.map.getLayer('iris-fill')) {
   console.log("➕ Adding IRIS layers via addLayer...");
   try {
-    addLayer('iris'); // Ajoute iris-fill, iris-outline, iris-labels
+    addLayer('iris');
   } catch (error) {
     console.error("🛑 Error adding IRIS layers:", error);
     return;
@@ -1063,10 +1063,6 @@ if (!window.map.getLayer('iris-fill')) {
     if (window.map.getLayer(layerId)) {
       window.map.setLayoutProperty(layerId, 'visibility', 'visible');
       console.log(`✅ Set ${layerId} visibility to visible`);
-      if (layerId === 'iris-outline') {
-        window.map.setPaintProperty(layerId, 'line-width', 2);
-        console.log("✅ Updated iris-outline line-width to 2");
-      }
     }
   });
 }
