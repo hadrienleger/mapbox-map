@@ -658,15 +658,17 @@ let fillPaintObj;
   } else {
     console.log(`Couche ${fillLayerId} absente, ajout en cours...`);
     try {
-      window.map.addLayer({
-        id: fillLayerId,
-        type: 'fill',
-        source: layerId,
-        'source-layer': config.sourceLayer,
-        minzoom: config.minzoom,
-        maxzoom: config.maxzoom,
-        paint: fillPaintObj
-      }, 'settlement-subdivision-label');
+window.map.addLayer({
+  id: fillLayerId,
+  type: 'fill',
+  source: layerId,
+  'source-layer': config.sourceLayer,
+  minzoom: config.minzoom,
+  maxzoom: config.maxzoom,
+  paint: fillPaintObj,
+  filter: layerId === 'iris' ? ['in', 'CODE_IRIS', ''] : undefined // Filtre vide pour iris
+}, 'settlement-subdivision-label');
+
       console.log(`Couche ${fillLayerId} ajoutée`);
     } catch (error) {
       console.error(`Erreur lors de l’ajout de ${fillLayerId}:`, error);
@@ -680,24 +682,25 @@ let fillPaintObj;
   } else {
     console.log(`Couche ${outlineLayerId} absente, ajout en cours...`);
     try {
-      window.map.addLayer({
-        id: outlineLayerId,
-        type: 'line',
-        source: layerId,
-        'source-layer': config.sourceLayer,
-        minzoom: config.minzoom,
-        maxzoom: config.maxzoom,
-        paint: {
-          'line-color': '#FFFFFF',
-          'line-width': 1,
-          'line-opacity': 0.8,
-          'line-blur': 0
-        },
-        layout: {
-          'line-join': 'round',
-          'line-cap': 'round'
-        }
-      }, 'settlement-subdivision-label');
+window.map.addLayer({
+  id: outlineLayerId,
+  type: 'line',
+  source: layerId,
+  'source-layer': config.sourceLayer,
+  minzoom: config.minzoom,
+  maxzoom: config.maxzoom,
+  paint: {
+    'line-color': '#FFFFFF',
+    'line-width': 1,
+    'line-opacity': 0.8,
+    'line-blur': 0
+  },
+  layout: {
+    'line-join': 'round',
+    'line-cap': 'round'
+  },
+  filter: layerId === 'iris' ? ['in', 'CODE_IRIS', ''] : undefined // Filtre vide pour iris
+}, 'settlement-subdivision-label');
       console.log(`Couche ${outlineLayerId} ajoutée`);
     } catch (error) {
       console.error(`Erreur lors de l’ajout de ${outlineLayerId}:`, error);
@@ -751,24 +754,25 @@ switch (config.labels.labelFormat) {
     } else {
       console.log(`Couche ${labelLayerId} absente, ajout en cours...`);
       try {
-        window.map.addLayer({
-          id: labelLayerId,
-          type: 'symbol',
-          source: layerId,
-          'source-layer': config.sourceLayer,
-          minzoom: config.labels.minzoom || 0,
-          maxzoom: config.maxzoom || 22,
-          layout: {
-            'text-field': textFieldExpr,
-            'text-size': config.labels.textSize || 12,
-            'text-anchor': 'center'
-          },
-          paint: {
-            'text-color': config.labels.color || '#000',
-            'text-halo-color': config.labels.haloColor || '#fff',
-            'text-halo-width': config.labels.haloWidth || 1
-          }
-        }, 'settlement-subdivision-label');
+window.map.addLayer({
+    id: labelLayerId,
+    type: 'symbol',
+    source: layerId,
+    'source-layer': config.sourceLayer,
+    minzoom: config.labels.minzoom || 0,
+    maxzoom: config.maxzoom || 22,
+    layout: {
+      'text-field': textFieldExpr,
+      'text-size': config.labels.textSize || 12,
+      'text-anchor': 'center'
+    },
+    paint: {
+      'text-color': config.labels.color || '#000',
+      'text-halo-color': config.labels.haloColor || '#fff',
+      'text-halo-width': config.labels.haloWidth || 1
+    },
+    filter: layerId === 'iris' ? ['in', 'CODE_IRIS', ''] : undefined // Filtre vide pour iris
+  }, 'settlement-subdivision-label');
         console.log(`Couche ${labelLayerId} ajoutée`);
       } catch (error) {
         console.error(`Erreur lors de l’ajout de ${labelLayerId}:`, error);
