@@ -582,21 +582,22 @@ initExternalSearch_Explorer();  // lance l’attente
 
 /* =========  UTILITAIRE  ========== */
 /* =========  UTILITAIRE : rend iris-fill / iris-temp cliquables  ========== */
+/* =========  UTILITAIRE : capter les clics sur iris-fill et iris-temp  ========== */
 function registerIrisClickListeners() {
   ['iris-fill', 'iris-temp'].forEach(layerId => {
-    if (!window.map.getLayer(layerId)) return;         // couche absente ?
-    /* On évite les doublons : on retire d’abord tout ancien listener */
-    window.map.off('click', layerId, onIrisClick);     
-    window.map.on ('click', layerId, onIrisClick);
-    window.map.on ('mouseenter', layerId, () => window.map.getCanvas().style.cursor = 'pointer');
-    window.map.on ('mouseleave', layerId, () => window.map.getCanvas().style.cursor = '');
+    if (window.map.getLayer(layerId) && !window.map.listens?.('click', layerId)) {
+      window.map.on('click', layerId, e => {
+        const codeIris = e.features[0].properties['CODE_IRIS'];
+        window.selectGeometry('iris', codeIris);
+      });
+      window.map.on('mouseenter', layerId, () =>
+        window.map.getCanvas().style.cursor = 'pointer');
+      window.map.on('mouseleave', layerId, () =>
+        window.map.getCanvas().style.cursor = '');
+    }
   });
-
-  function onIrisClick(e) {
-    const codeIris = e.features[0].properties['CODE_IRIS'];
-    window.selectGeometry('iris', codeIris);
-  }
 }
+
    /****************************************************
      * FONCTION hideAllLayers
      * On masque fill, outline et labels
@@ -1072,6 +1073,8 @@ window.lastIrisList = codes.slice();   // copie défensive
         },
         filter: ['match', ['get', 'CODE_IRIS'], codes, true, false]
       }, 'settlement-subdivision-label');
+      registerIrisClickListeners();
+
 
       // Ajouter une couche de bordure avec line-width: 2
       window.map.addLayer({
@@ -1103,6 +1106,7 @@ window.lastIrisList = codes.slice();   // copie défensive
         }
       }
     });
+    registerIrisClickListeners();   // ← nouveau
   }
 
   window.map.once('idle', () => {
