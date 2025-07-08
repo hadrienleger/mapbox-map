@@ -587,34 +587,29 @@ function ensureIrisSelectedLayers() {
   /* Remplissage jaune translucide */
   if (!window.map.getLayer('iris-selected-fill')) {
     window.map.addLayer({
-      id: 'iris-selected-fill',
-      type: 'fill',
-      source: 'iris',
-      'source-layer': layerConfigs['iris'].sourceLayer,
-      paint: {
-        'fill-color': 'rgba(255,215,0,0.35)',
-        'fill-opacity': 0.8
-      },
-      filter: ['==', ['get', 'CODE_IRIS'], '']
-    }, 'iris-outline');          // au-dessus du contour
-    console.log('➕ iris-selected-fill ajouté');
+  id: 'iris-selected-fill',
+  type: 'fill',
+  source: 'iris',
+  'source-layer': layerConfigs.iris.sourceLayer,
+  paint: {
+    'fill-color': 'rgba(255,215,0,0.35)',
+    'fill-opacity': 0.8
+  },
+  filter: ['==', ['get', 'CODE_IRIS'], '']
+}, 'settlement-subdivision-label');   // ← ancre toujours présente
   }
 
   /* Bordure or épaisse */
   if (!window.map.getLayer('iris-selected-outline')) {
-    window.map.addLayer({
-      id: 'iris-selected-outline',
-      type: 'line',
-      source: 'iris',
-      'source-layer': layerConfigs['iris'].sourceLayer,
-      paint: {
-        'line-color': '#FFD700',
-        'line-width': 3
-      },
-      filter: ['==', ['get', 'CODE_IRIS'], '']
-    }, 'iris-labels');           // sous les labels
-    console.log('➕ iris-selected-outline ajouté');
-  }
+window.map.addLayer({
+  id: 'iris-selected-outline',
+  type: 'line',
+  source: 'iris',
+  'source-layer': layerConfigs.iris.sourceLayer,
+  paint: { 'line-color': '#FFD700', 'line-width': 3 },
+  filter: ['==', ['get', 'CODE_IRIS'], '']
+}, 'settlement-subdivision-label');   // même ancre robuste
+}
 }
 
 /* =========  UTILITAIRE : capter les clics sur iris-fill et iris-temp  ========== */
@@ -756,48 +751,7 @@ let fillPaintObj;
       console.error(`Erreur lors de l’ajout de ${outlineLayerId}:`, error);
     }
   }
-/* ----------  Ajout UNIQUE des couches de sélection  ---------- */
-if (layerId === 'iris') {
-  /* Remplissage du polygone sélectionné */
-  if (!window.map.getLayer('iris-selected-fill')) {
-    window.map.addLayer({
-      id: 'iris-selected-fill',
-      type: 'fill',
-      source: 'iris',
-      'source-layer': layerConfigs['iris'].sourceLayer,
-      paint: {
-        'fill-color': 'rgba(255,215,0,0.35)', // jaune or translucide
-        'fill-opacity': 0.8
-      },
-      filter: ['==', ['get', 'CODE_IRIS'], ''], // vide au départ
-      layout: {
-        'visibility': 'none' // Masqué par défaut
-      }
-    }, 'iris-labels'); // Placer sous les étiquettes pour éviter de masquer les labels
-    console.log('➕ Couche iris-selected-fill ajoutée');
-  }
 
-  /* Bordure du polygone sélectionné */
-  if (!window.map.getLayer('iris-selected-outline')) {
-    window.map.addLayer({
-      id: 'iris-selected-outline',
-      type: 'line',
-      source: 'iris',
-      'source-layer': layerConfigs['iris'].sourceLayer,
-      paint: {
-        'line-color': '#FFD700', // jaune or
-        'line-width': 3,
-        'line-opacity': 1
-      },
-      filter: ['==', ['get', 'CODE_IRIS'], ''], // vide au départ
-      layout: {
-        'visibility': 'none' // Masqué par défaut
-      }
-    }, 'iris-labels'); // Placer sous les étiquettes
-    console.log('➕ Couche iris-selected-outline ajoutée');
-  }
-}
-/* ----------  Fin ajout sélection  ---------- */
 
 
 if (config.labels?.enabled) {
@@ -1246,7 +1200,6 @@ ensureIrisSelectedLayers();
       }
 
       console.log("✅ Filter applied successfully, keeping current map viewport");
-      applySelectionPaint(codes, focusCode);
     }
   });
 };
@@ -1427,50 +1380,24 @@ window.resetRecherche = function() {
     // 3) Appeler la fonction Bubble
 window.selectGeometry = function(layerId, codeIris) {
   const config = layerConfigs[layerId];
-  if (!window.map || !config) {
-    console.error("🛑 Map or config not available for selectGeometry");
-    return;
-  }
+  if (!window.map || !config) return;
 
-  console.log(`✅ Selecting IRIS with CODE_IRIS: ${codeIris}`);
+  /* 0️⃣  s’assurer que les deux couches de sélection existent */
+  ensureIrisSelectedLayers();
 
-  // 1. Réinitialiser les filtres des couches de sélection
-  ['iris-selected-fill', 'iris-selected-outline'].forEach(layerId => {
-    if (window.map.getLayer(layerId)) {
-      window.map.setFilter(layerId, ['==', ['get', 'CODE_IRIS'], '']); // Masquer d'abord
-    }
+  /* 1️⃣  déplacer le halo sur l’IRIS cliqué */
+  ['iris-selected-fill', 'iris-selected-outline'].forEach(selId => {
+    window.map.setFilter(selId, ['==', ['get', 'CODE_IRIS'], codeIris]);
+    window.map.setLayoutProperty(selId, 'visibility', 'visible');
+    window.map.moveLayer(selId);               // sans second arg. = tout en haut
   });
 
-  // 2. Appliquer le filtre pour l'IRIS cliqué
-  ['iris-selected-fill', 'iris-selected-outline'].forEach(layerId => {
-    if (window.map.getLayer(layerId)) {
-      window.map.setFilter(layerId, ['==', ['get', 'CODE_IRIS'], codeIris]);
-      window.map.setLayoutProperty(layerId, 'visibility', 'visible');
-      console.log(`✅ Set filter and visibility for ${layerId}`);
-    } else {
-      console.warn(`🛑 Layer ${layerId} not found`);
-    }
-  });
-
-  // 3. Remonter les couches de sélection au-dessus des autres
-  if (window.map.getLayer('iris-selected-fill')) window.map.moveLayer('iris-selected-fill', 'iris-labels');
-  if (window.map.getLayer('iris-selected-outline')) window.map.moveLayer('iris-selected-outline', 'iris-labels');
-
-  // 4. Forcer le rendu
-  window.map.triggerRepaint();
-  console.log("✅ Triggered repaint for selection");
-
-  // 5. Envoyer l’info à Bubble
+  /* 2️⃣  notifier Bubble (format objet que Bubble attend) */
   if (typeof bubble_fn_mapClicked === 'function') {
     bubble_fn_mapClicked({ output1: layerId, output2: codeIris });
-    console.log(`✅ Called bubble_fn_mapClicked with layerId: ${layerId}, codeIris: ${codeIris}`);
   }
-
-  // 6. Supprimer l'appel à applySelectionPaint pour éviter les conflits
-  // if (layerId === 'iris') {
-  //   applySelectionPaint(window.lastIrisList || [], codeIris);
-  // }
 };
+
 
 window.zoomToIrisQueued = function(codes, focusCode = null){
   if (!window.map || !window.map.loaded()) {
