@@ -580,8 +580,43 @@ initExternalSearch_Explorer();  // lance l’attente
 /*  FIN B)  SearchBox « Explorer » – centrée et focus     */
 /* -------------------------------------------------- */
 
-/* =========  UTILITAIRE  ========== */
-/* =========  UTILITAIRE : rend iris-fill / iris-temp cliquables  ========== */
+/* =========  UTILITAIRE : s’assure que les deux couches de sélection existent ========== */
+function ensureIrisSelectedLayers() {
+  if (!window.map || !window.map.getSource('iris')) return;
+
+  /* Remplissage jaune translucide */
+  if (!window.map.getLayer('iris-selected-fill')) {
+    window.map.addLayer({
+      id: 'iris-selected-fill',
+      type: 'fill',
+      source: 'iris',
+      'source-layer': layerConfigs['iris'].sourceLayer,
+      paint: {
+        'fill-color': 'rgba(255,215,0,0.35)',
+        'fill-opacity': 0.8
+      },
+      filter: ['==', ['get', 'CODE_IRIS'], '']
+    }, 'iris-outline');          // au-dessus du contour
+    console.log('➕ iris-selected-fill ajouté');
+  }
+
+  /* Bordure or épaisse */
+  if (!window.map.getLayer('iris-selected-outline')) {
+    window.map.addLayer({
+      id: 'iris-selected-outline',
+      type: 'line',
+      source: 'iris',
+      'source-layer': layerConfigs['iris'].sourceLayer,
+      paint: {
+        'line-color': '#FFD700',
+        'line-width': 3
+      },
+      filter: ['==', ['get', 'CODE_IRIS'], '']
+    }, 'iris-labels');           // sous les labels
+    console.log('➕ iris-selected-outline ajouté');
+  }
+}
+
 /* =========  UTILITAIRE : capter les clics sur iris-fill et iris-temp  ========== */
 function registerIrisClickListeners() {
   ['iris-fill', 'iris-temp'].forEach(layerId => {
@@ -1118,6 +1153,9 @@ window.lastIrisList = codes.slice();   // copie défensive
       }, 'settlement-subdivision-label');
       registerIrisClickListeners();
 
+/* ⬇️  ajoute ceci (s'assurer que les couches de sélection s'affichent)*/
+ensureIrisSelectedLayers();
+/* ⬆️ */
 
       // Ajouter une couche de bordure avec line-width: 2
       window.map.addLayer({
