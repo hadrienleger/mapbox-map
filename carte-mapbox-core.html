@@ -612,6 +612,36 @@ window.map.addLayer({
 }
 }
 
+/* =========  Permet la sélection des IRIS sur la carte au clic sur l'IRIS dans la liste côté Bubble ========== */
+window.focusIrisFromBubble = function(codeIris){
+  if (!codeIris) return;
+
+  if (!window.map || !window.map.loaded()){
+    setTimeout(() => window.focusIrisFromBubble(codeIris), 300);
+    return;
+  }
+
+  /* 1 — Surligner immédiatement */
+  window.selectGeometry('iris', codeIris);
+
+  /* 2 — Recentre, sans toucher au zoom */
+  const feat = window.map.querySourceFeatures('iris', {
+    sourceLayer: layerConfigs.iris.sourceLayer,
+    filter: ['==', ['get', 'CODE_IRIS'], codeIris]
+  })[0];
+
+  if (feat) {
+    const center = turf.center(feat).geometry.coordinates;  // [lon,lat]
+    window.map.easeTo({
+      center,
+      duration: 600,
+      zoom: window.map.getZoom()      // ← niveau actuel, donc pas de changement
+    });
+  }
+};
+
+
+
 /* =========  UTILITAIRE : capter les clics sur iris-fill et iris-temp  ========== */
 function registerIrisClickListeners() {
   ['iris-fill', 'iris-temp'].forEach(layerId => {
