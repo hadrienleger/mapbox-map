@@ -199,6 +199,10 @@ window.showCollectivitePolygons = function(fc) {
   // Calculer fitBounds
   const bbox = turf.bbox(fc);
   window.map.fitBounds(bbox, { padding: 60, duration: 600 });
+
+  /* NEW — on garde l’emprise “collectivités” en mémoire pour les resizing de la carte*/
+window.lastCollectivitesBBox   = bbox;
+window.lastCollectivitesPad    = 60;    // même padding, pratique si tu le changes
 };
 
 window.removeCollectivite = function(code){
@@ -255,6 +259,34 @@ window.removeAllCollectivites = function(){
           center: [2.361, 48.852],
           zoom: 10
         });
+
+
+/* ▸▸  AJOUTE ICI  – observer automatique du redimensionnement  ▸▸ */
+(function () {
+  if (!window.ResizeObserver) return;           // vieux navigateurs
+
+  const mapDiv = document.getElementById('map');
+  if (!mapDiv) return;
+
+  const ro = new ResizeObserver(() => {
+    if (!window.map) return;
+
+    // 1) prévenir Mapbox que le <canvas> a changé de taille
+    window.map.resize();
+
+    // 2) recadrer sur la dernière emprise “collectivités”, si on l’a mémorisée
+    if (window.lastCollectivitesBBox) {
+      window.map.fitBounds(window.lastCollectivitesBBox, {
+        padding  : window.lastCollectivitesPad ?? 60,
+        duration : 0          // 0 ms → pas d’animation perceptible
+      });
+    }
+  });
+
+  ro.observe(mapDiv);                 // lancement de l’observation
+  window._mapResizeObserver = ro;     // (facultatif) référence globale
+})();
+/* ▸▸  FIN du bloc ResizeObserver  ▸▸ */
 
         window.map.on('load', () => {
           console.log('Carte chargée avec succès');
