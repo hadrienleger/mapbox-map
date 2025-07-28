@@ -1,0 +1,318 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="initial-scale=1,maximum-scale=1,user-scalable=no">
+  <link href="https://api.mapbox.com/mapbox-gl-js/v2.15.0/mapbox-gl.css" rel="stylesheet">
+  <script defer src="https://api.mapbox.com/mapbox-gl-js/v2.15.0/mapbox-gl.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@turf/turf@6.5.0/turf.min.js"></script>
+  <style>
+    body {
+      margin: 0;
+      padding: 0;
+      font-family: "Inter", sans-serif;
+    }
+    #map {
+      width: 100%;
+      height: 400px; /* Ajustable dans Bubble */
+      background-color: #f0f0f0;
+    }
+    .loading-message {
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      background: rgba(255, 255, 255, 0.9);
+      padding: 20px;
+      border-radius: 8px;
+      font-size: 14px;
+      z-index: 1000;
+    }
+  </style>
+</head>
+<body>
+  <div id="map">
+    <div id="loading" class="loading-message">Chargement du quartier...</div>
+  </div>
+
+  <script>
+    // Variable globale pour la carte
+    window.map = null;
+    let irisFeatureCollection = null;
+
+    // Configuration de la couche IRIS
+    const irisConfig = {
+      source: { 
+        type: 'vector', 
+        url: 'mapbox://hadrienleger.ak5sb828' 
+      },
+      sourceLayer: 'iris-ign-petite-etendue-wgs84-7y17me',
+      fillPaint: {
+        'fill-color': '#7b2cbf',
+        'fill-opacity': 0.7
+      },
+      outlinePaint: {
+        'line-color': '#7b2cbf',
+        'line-width': 2,
+        'line-opacity': 1
+      },
+      labelPaint: {
+        'text-color': '#fff',
+        'text-halo-color': '#7b2cbf',
+        'text-halo-width': 1
+      }
+    };
+
+    async function initializeMap() {
+      console.log('🚀 Initialisation de la carte IRIS détail');
+      
+      // Vérifier que les éléments requis sont prêts
+      if (!document.getElementById('map') || typeof mapboxgl === 'undefined') {
+        console.log('⏳ Mapbox GL JS ou #map non prêt, réessai dans 200ms');
+        setTimeout(initializeMap, 200);
+        return;
+      }
+
+      // Récupérer le code IRIS et les 4 paramètres bbox depuis l'URL
+      const urlParams = new URLSearchParams(window.location.search);
+      const codeIris = urlParams.get('iris');
+      const bbox_w = urlParams.get('bbox_w');
+      const bbox_s = urlParams.get('bbox_s');
+      const bbox_e = urlParams.get('bbox_e');
+      const bbox_n = urlParams.get('bbox_n');
+      
+      if (!codeIris) {
+        console.error('🛑 Aucun code IRIS trouvé dans l\'URL (?iris=CODE_IRIS)');
+        document.getElementById('loading').textContent = 'Code IRIS manquant';
+        return;
+      }
+
+      console.log('✅ Code IRIS récupéré :', codeIris);
+      
+      // Construire le bbox si les 4 paramètres sont présents
+      let initialBounds = null;
+      if (bbox_w && bbox_s && bbox_e && bbox_n) {
+        const west = parseFloat(bbox_w);
+        const south = parseFloat(bbox_s);
+        const east = parseFloat(bbox_e);
+        const north = parseFloat(bbox_n);
+        
+        if (!isNaN(west) && !isNaN(south) && !isNaN(east) && !isNaN(north)) {
+          initialBounds = [[west, south], [east, north]];
+          console.log('✅ Bbox récupéré depuis les 4 paramètres URL :', initialBounds);
+        }
+      }
+
+      // Configurer Mapbox
+      mapboxgl.accessToken = 'pk.eyJ1IjoiaGFkcmllbmxlZ2VyIiwiYSI6ImNtYXBjbDlzYTBncGoyaXNhN3dpajI3b3MifQ.TatwRPDuazMQH2DfSkxv2w';
+      
+      try {
+        // Configurer le centre et zoom initial
+        let mapConfig = {
+          container: 'map',
+          style: 'mapbox://styles/mapbox/light-v10',
+          maxZoom: 18
+        };
+        
+        if (initialBounds) {
+          // Si on a le bbox, initialiser la carte directement dessus
+          mapConfig.bounds = initialBounds;
+          mapConfig.fitBoundsOptions = { padding: 60 };
+          console.log('🎯 Initialisation directe sur le bbox de l\'IRIS');
+        } else {
+          // Sinon, centre temporaire sur la France
+          mapConfig.center = [2.3522, 48.8566];
+          mapConfig.zoom = 6;
+          console.log('📍 Initialisation avec centre temporaire');
+        }
+        
+        window.map = new mapboxgl.Map(mapConfig);
+
+        window.map.on('error', e => {
+          console.error('🛑 Erreur Mapbox :', e);
+          document.getElementById('loading').style.display = 'none';
+        });
+
+        // Une fois le style chargé, configurer les couches et centrer
+        window.map.once('style.load', () => {
+          console.log('✅ Style chargé, configuration des couches IRIS');
+          
+          // Ajouter la source IRIS
+          try {
+            window.map.addSource('iris', irisConfig.source);
+            console.log('➕ Source IRIS ajoutée');
+            
+            // Ajouter les couches avec le filtre
+            const filter = ['==', ['get', 'CODE_IRIS'], codeIris];
+            
+            window.map.addLayer({
+              id: 'iris-fill',
+              type: 'fill',
+              source: 'iris',
+              'source-layer': irisConfig.sourceLayer,
+              filter: filter,
+              paint: irisConfig.fillPaint
+            });
+
+            window.map.addLayer({
+              id: 'iris-outline',
+              type: 'line',
+              source: 'iris',
+              'source-layer': irisConfig.sourceLayer,
+              filter: filter,
+              paint: irisConfig.outlinePaint
+            });
+
+            // Couche de labels commentée - décommentez si vous voulez afficher le nom
+            /*
+            window.map.addLayer({
+              id: 'iris-labels',
+              type: 'symbol',
+              source: 'iris',
+              'source-layer': irisConfig.sourceLayer,
+              filter: filter,
+              layout: {
+                'text-field': ['get', 'NOM_IRIS'],
+                'text-size': 14,
+                'text-anchor': 'center'
+              },
+              paint: irisConfig.labelPaint
+            });
+            */
+
+            console.log('✅ Couches IRIS configurées');
+            
+            // Si on n'avait pas le bbox initial, centrer sur l'IRIS
+            if (!initialBounds) {
+              centerOnIris(codeIris);
+            } else {
+              // Sinon, juste cacher le loader car on est déjà centré
+              document.getElementById('loading').style.display = 'none';
+            }
+            
+          } catch (error) {
+            console.error('🔴 Erreur lors de la configuration :', error);
+            document.getElementById('loading').style.display = 'none';
+          }
+        });
+
+      } catch (error) {
+        console.error('🔴 Erreur lors de l\'initialisation :', error);
+        document.getElementById('loading').style.display = 'none';
+      }
+    }
+
+    function centerOnIris(codeIris) {
+      console.log('🎯 Centrage sur l\'IRIS :', codeIris);
+      
+      let attempts = 0;
+      const maxAttempts = 30;
+      let centered = false;
+
+      function attemptCenter() {
+        if (centered) return;
+        
+        attempts++;
+        console.log(`📍 Tentative de centrage ${attempts}/${maxAttempts}`);
+
+        // Chercher l'IRIS dans les données de la source
+        const features = window.map.querySourceFeatures('iris', {
+          sourceLayer: irisConfig.sourceLayer,
+          filter: ['==', ['get', 'CODE_IRIS'], codeIris]
+        });
+
+        if (features.length > 0) {
+          console.log('✅ IRIS trouvé, calcul du bbox et centrage');
+          
+          // Créer une FeatureCollection pour utiliser turf.bbox
+          const fc = {
+            type: 'FeatureCollection',
+            features: features
+          };
+          
+          // Calculer le bbox comme dans carte-mapbox-core.html
+          const bbox = turf.bbox(fc);
+          
+          // Appliquer le fitBounds avec les mêmes paramètres
+          window.map.fitBounds(bbox, { 
+            padding: 60, 
+            duration: 600,
+            maxZoom: 15 // Limiter le zoom max pour éviter d'être trop proche
+          });
+          
+          centered = true;
+          
+          // Masquer le message de chargement après le centrage
+          window.map.once('moveend', () => {
+            document.getElementById('loading').style.display = 'none';
+          });
+          
+        } else if (attempts < maxAttempts) {
+          // Réessayer avec un délai progressif
+          const delay = Math.min(100 * Math.pow(1.1, attempts), 1000);
+          setTimeout(attemptCenter, delay);
+        } else {
+          console.error('🛑 Impossible de trouver l\'IRIS après toutes les tentatives');
+          document.getElementById('loading').textContent = 'IRIS introuvable';
+          
+          // Dernière tentative : essayer de charger plus de tuiles
+          window.map.once('idle', () => {
+            const lastTry = window.map.querySourceFeatures('iris', {
+              sourceLayer: irisConfig.sourceLayer,
+              filter: ['==', ['get', 'CODE_IRIS'], codeIris]
+            });
+            
+            if (lastTry.length > 0) {
+              const fc = { type: 'FeatureCollection', features: lastTry };
+              const bbox = turf.bbox(fc);
+              window.map.fitBounds(bbox, { padding: 60, duration: 600, maxZoom: 15 });
+              document.getElementById('loading').style.display = 'none';
+            }
+          });
+          
+          // Zoomer un peu moins pour charger plus de tuiles
+          window.map.flyTo({ zoom: 10, duration: 500 });
+        }
+      }
+
+      // Écouter les événements de données pour maximiser les chances
+      const dataListener = window.map.on('data', (e) => {
+        if (e.sourceId === 'iris' && !centered) {
+          attemptCenter();
+        }
+      });
+
+      // Première tentative après un court délai
+      setTimeout(attemptCenter, 300);
+
+      // Nettoyer le listener après 20 secondes
+      setTimeout(() => {
+        if (dataListener) {
+          window.map.off('data', dataListener);
+        }
+      }, 20000);
+    }
+
+    // Méthode alternative : pré-charger la position via l'API
+    // (à implémenter si la méthode ci-dessus n'est pas assez fluide)
+    async function getIrisCenter(codeIris) {
+      try {
+        // Vous pourriez appeler votre API pour obtenir le centroïde
+        // const response = await fetch(`/api/iris/${codeIris}/center`);
+        // const data = await response.json();
+        // return [data.lon, data.lat];
+        
+        // Pour l'instant, retourner null pour utiliser la méthode standard
+        return null;
+      } catch (error) {
+        console.error('Erreur lors de la récupération du centre :', error);
+        return null;
+      }
+    }
+
+    // Démarrer l'initialisation
+    console.log('🎬 Démarrage de l\'initialisation');
+    initializeMap();
+  </script>
+</body>
+</html>
