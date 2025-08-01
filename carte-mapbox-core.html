@@ -254,23 +254,26 @@ window.removeAllCollectivites = function(){
       mapboxgl.accessToken = 'pk.eyJ1IjoiaGFkcmllbmxlZ2VyIiwiYSI6ImNtYXBjbDlzYTBncGoyaXNhN3dpajI3b3MifQ.TatwRPDuazMQH2DfSkxv2w';
       try {
         window.map = new mapboxgl.Map({
-
-          // Fonction censée résoudre les problèmes de permanence des IRIS à la réinitilisation de la zone de recherche (icône pencil)
-          window.mapReadyCallbacks = [];
-
-function runWhenMapReady(callback) {
-  if (window.map && window.map.isStyleLoaded && window.map.isStyleLoaded()) {
-    callback();
-  } else {
-    console.warn("🕓 Carte non prête, mise en file d’attente…");
-    window.mapReadyCallbacks.push(callback);
-  }
-}
           container: 'map',
           style: 'mapbox://styles/mapbox/streets-v12',
           center: [2.361, 48.852],
           zoom: 10
         });
+
+/*************************************************************
+ *  Petit utilitaire global : exécute un callback quand la
+ *  carte Mapbox est complètement chargée
+ *************************************************************/
+window.runWhenMapReady = function (cb) {
+  // 1) carte déjà prête → on exécute tout de suite
+  if (window.map && window.map.loaded()) {
+    try { cb(); } catch (err) { console.error(err); }
+    return;
+  }
+  // 2) sinon on ré-essaie toutes les 200 ms
+  setTimeout(function () { window.runWhenMapReady(cb); }, 200);
+};
+
 
 
 /* ▸▸  AJOUTE ICI  – observer automatique du redimensionnement  ▸▸ */
@@ -307,53 +310,6 @@ function runWhenMapReady(callback) {
               window.map.addSource(layerId, layerConfigs[layerId].source);
             }
           });
-
-          if (typeof mapboxsearch !== 'undefined' && mapboxsearch.MapboxSearchBox) {
-            const searchBox = new mapboxsearch.MapboxSearchBox();
-            searchBox.accessToken = mapboxgl.accessToken;
-            searchBox.options = {
-              types: 'address,poi',
-              language: 'fr',
-              proximity: window.map.getCenter(),
-              placeholder: 'Rechercher une adresse ou un lieu'
-            };
-            searchBox.mapboxgl = mapboxgl;
-            searchBox.marker = false;
-            searchBox.bindMap(window.map);
-            document.getElementById('search-box-container').appendChild(searchBox);
-
-            searchBox.addEventListener('retrieve', (event) => {
-              console.log('Résultat de la recherche :', event.detail);
-              const [lon, lat] = event.detail.features[0].geometry.coordinates;
-
-              // 1. Centrer / marquer
-              window.map.flyTo({ center: [lon, lat], zoom: 15 });
-              new mapboxgl.Marker({ color:'#ff0066' })
-                .setLngLat([lon, lat])
-                .addTo(window.map);
-
-              // 2. Passer l'info à Bubble
-              if (typeof bubble_fn_addressSelected === 'function') {
-                bubble_fn_addressSelected({
-                  output1: lon,
-                  output2: lat });
-              }
-            });
-          } else {
-            console.warn('Mapbox Search JS non chargé');
-          }
-
-          // partie censée résoudre les problèmes de permanence des IRIS à la réinitilisation de la zone de recherche (icône pencil)
-              // Déclenche les callbacks en attente
-              while (window.mapReadyCallbacks.length > 0) {
-                const cb = window.mapReadyCallbacks.shift();
-                try {
-                  cb();
-                } catch (e) {
-                  console.error("Erreur dans callback différé :", e);
-                }
-              }
-
         });
 
         window.map.on('error', (e) => console.error('Erreur Mapbox :', e));
@@ -1290,28 +1246,178 @@ ensureIrisSelectedLayers();
   });
 };
 
-window.resetRecherche = function () {
-  runWhenMapReady(function () {
-    console.log("🔁 Reset de la recherche : suppression des IRIS");
+window.resetRecherche = function() {
+  console.log("➡️ resetRecherche called");
 
-    if (window.map.getLayer('iris-temp')) {
-      window.map.removeLayer('iris-temp');
-    }
-    if (window.map.getLayer('iris-temp-outline')) {
-      window.map.removeLayer('iris-temp-outline');
-    }
+  /* ─────────────────────────– garde d’attente –──────────────────────── */
 
-    if (window.map.getSource('iris-temp')) {
-      window.map.removeSource('iris-temp');
-    }
-    if (window.map.getSource('iris-temp-outline')) {
-      window.map.removeSource('iris-temp-outline');
-    }
+  /* A) L’objet map n’existe pas encore → on ré-essaie dans 200 ms */
+  if (!window.map) {
+    setTimeout(window.resetRecherche, 200);
+    return;
+  }
 
-    console.log("✅ IRIS supprimés de la carte");
+  /* B) Le style Mapbox n’est pas encore complètement rendu             */
+  /*    → on attend l’évènement « idle » (plus fiable que « load »)     */
+  if (!window.map.isStyleLoaded()) {
+    window.map.once('idle', () => window.resetRecherche());
+    return;
+  }
+
+  /* ───────────────────────– FIN de la garde –───────────────────────── */
+
+  // 1. Supprimer les couches temporaires IRIS
+  ['iris-temp', 'iris-temp-outline'].forEach(layerId => {
+    if (window.map.getLayer(layerId)) {
+      window.map.removeLayer(layerId);
+      console.log(`✅ Removed ${layerId} layer`);
+    }
   });
-};
 
+  // 2. Masquer et réinitialiser les filtres des couches IRIS existantes
+  ['iris-fill', 'iris-outline', 'iris-labels'].forEach(layerId => {
+    if (window.map.getLayer(layerId)) {
+      window.map.setLayoutProperty(layerId, 'visibility', 'none');
+      window.map.setFilter(layerId, null);
+      console.log(`✅ Hid and reset filter for ${layerId}`);
+      if (layerId === 'iris-outline') {
+        window.map.setPaintProperty(layerId, 'line-width', 2);
+        console.log("✅ Reset iris-outline line-width to 2");
+      }
+    }
+  });
+
+  // 3. Restaurer les données en fonction de la méthode utilisée
+  // Initialiser window.radiusData si nécessaire
+  if (!window.radiusData || !window.radiusData.features) {
+    window.radiusData = { type: 'FeatureCollection', features: [] };
+    console.log("✅ Initialized empty radiusData");
+  }
+
+  if (window.radiusData.features.length > 0 && window.radiusCenter && typeof window.radiusKm === 'number' && window.radiusKm > 0) {
+    // Méthode 2 : Restaurer le cercle
+    console.log("🔄 Restoring radius (method 2)");
+    if (!window.map.getSource('radius')) {
+      console.log("➕ Recreating radius source...");
+      try {
+        window.map.addSource('radius', {
+          type: 'geojson',
+          data: window.radiusData
+        });
+      } catch (error) {
+        console.error("🔴 Error recreating radius source:", error);
+        return;
+      }
+    } else {
+      console.log("🔍 Updating radius source data...");
+      window.map.getSource('radius').setData(window.radiusData);
+    }
+
+    if (!window.map.getLayer('radius-fill')) {
+      console.log("➕ Adding radius-fill layer...");
+      try {
+        window.map.addLayer({
+          id: 'radius-fill',
+          type: 'fill',
+          source: 'radius',
+          paint: { 'fill-color': '#8A2BE2', 'fill-opacity': 0.2 }
+        });
+      } catch (error) {
+        console.error("🔴 Error adding radius-fill layer:", error);
+      }
+    } else {
+      window.map.setLayoutProperty('radius-fill', 'visibility', 'visible');
+      console.log("✅ Made radius-fill visible");
+    }
+
+    if (!window.map.getLayer('radius-outline')) {
+      console.log("➕ Adding radius-outline layer...");
+      try {
+        window.map.addLayer({
+          id: 'radius-outline',
+          type: 'line',
+          source: 'radius',
+          paint: { 'line-color': '#8A2BE2', 'line-width': 2 }
+        });
+      } catch (error) {
+        console.error("🔴 Error adding radius-outline layer:", error);
+      }
+    } else {
+      window.map.setLayoutProperty('radius-outline', 'visibility', 'visible');
+      console.log("✅ Made radius-outline visible");
+    }
+
+    // Restaurer le marqueur
+    if (!window.radiusMarker && window.radiusCenter) {
+      console.log("➕ Recreating radius marker...");
+      try {
+        window.radiusMarker = new mapboxgl.Marker({ color: '#8A2BE2' })
+          .setLngLat([window.radiusCenter.lon, window.radiusCenter.lat])
+          .addTo(window.map);
+      } catch (error) {
+        console.error("🔴 Error recreating radius marker:", error);
+      }
+    }
+
+    console.log("✅ Radius restored, keeping current map viewport");
+  } else if (window.collectivitesData?.features?.length > 0) {
+    // Méthode 1 : Restaurer les collectivités
+    console.log("🔄 Restoring collectivites (method 1)");
+    if (!window.map.getSource('collectivites')) {
+      console.log("➕ Recreating collectivites source...");
+      try {
+        window.map.addSource('collectivites', {
+          type: 'geojson',
+          data: window.collectivitesData
+        });
+      } catch (error) {
+        console.error("🔴 Error recreating collectivites source:", error);
+        return;
+      }
+    } else {
+      console.log("🔍 Updating collectivites source data...");
+      window.map.getSource('collectivites').setData(window.collectivitesData);
+    }
+
+    if (!window.map.getLayer('collectivites-fill')) {
+      console.log("➕ Adding collectivites-fill layer...");
+      try {
+        window.map.addLayer({
+          id: 'collectivites-fill',
+          type: 'fill',
+          source: 'collectivites',
+          paint: { 'fill-color': '#8A2BE2', 'fill-opacity': 0.25 }
+        });
+      } catch (error) {
+        console.error("🔴 Error adding collectivites-fill layer:", error);
+      }
+    } else {
+      window.map.setLayoutProperty('collectivites-fill', 'visibility', 'visible');
+      console.log("✅ Made collectivites-fill visible");
+    }
+
+    if (!window.map.getLayer('collectivites-outline')) {
+      console.log("➕ Adding collectivites-outline layer...");
+      try {
+        window.map.addLayer({
+          id: 'collectivites-outline',
+          type: 'line',
+          source: 'collectivites',
+          paint: { 'line-color': '#8A2BE2', 'line-width': 2 }
+        });
+      } catch (error) {
+        console.error("🔴 Error adding collectivites-outline layer:", error);
+      }
+    } else {
+      window.map.setLayoutProperty('collectivites-outline', 'visibility', 'visible');
+      console.log("✅ Made collectivites-outline visible");
+    }
+
+    console.log("✅ Collectivités restored, keeping current map viewport");
+  } else {
+    console.warn("⚠️ No data available to restore (neither collectivites nor radius)");
+  }
+};
 
   // 1) Réinitialiser l’éventuel feature cliqué
     // 2) Appliquer setFeatureState
@@ -1335,7 +1441,6 @@ window.selectGeometry = function(layerId, codeIris) {
     bubble_fn_mapClicked({ output1: layerId, output2: codeIris });
   }
 };
-
 
 window.zoomToIrisQueued = function(codes, focusCode = null){
   if (!window.map || !window.map.loaded()) {
