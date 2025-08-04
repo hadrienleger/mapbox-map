@@ -433,7 +433,7 @@ window.clearRadius = function() {
 
 
 /* -------------------------------------------------- */
-/*  A)  SearchBox « Trouver »    */
+/*  A)  SearchBox « Trouver » (SB)   */
 /* -------------------------------------------------- */
 function initExternalSearch_Trouver() {
   if (!document.getElementById('radius-search') || !window.map) {
@@ -478,8 +478,8 @@ function initExternalSearch_Trouver() {
     drawRadius();
 
     // 4. Informer Bubble
-    if (typeof bubble_fn_pointMapboxSearchAPI === 'function') {
-      bubble_fn_pointMapboxSearchAPI({ output1: lon, output2: lat });
+    if (typeof bubble_fn_pointSBtrouver === 'function') {
+      bubble_fn_pointSBtrouver({ output1: lon, output2: lat });
     }
   });
 
@@ -500,9 +500,9 @@ initExternalSearch_Trouver();   // lance l’attente
 /*  FIN A)  SearchBox « Trouver »                     */
 /* -------------------------------------------------- */
 
-/* -------------------------------------------------- */
-/*  B)  SearchBox « Explorer » – centrée et focus     */
-/* -------------------------------------------------- */
+/* ----------------------------------------------------- */
+/*  B)  SearchBox « Explorer » (SB) – centrée et focus   */
+/* ----------------------------------------------------- */
 
 function initExternalSearch_Explorer () {
   const anchor = document.getElementById('mapbox-searchbox');          // le faux HTML
@@ -569,8 +569,8 @@ sb.addEventListener('retrieve', e => {
   }
 
   /* C) prévenir Bubble (inchangé) */
-    if (typeof bubble_fn_pointMapboxSearchAPI === 'function') {
-      bubble_fn_pointMapboxSearchAPI({ output1: lon, output2: lat });
+    if (typeof bubble_fn_pointSBexplorer === 'function') {
+      bubble_fn_pointSBexplorer({ output1: lon, output2: lat });
     }
 });
 
