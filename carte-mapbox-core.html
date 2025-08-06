@@ -70,7 +70,7 @@
     window.radiusData = { type: 'FeatureCollection', features: [] }; // Stocke le GeoJSON du cercle    let currentLayerId = null;
     let currentChoropleth = null; 
 
-    const layerConfigs = {
+    window.layerConfigs = {
       iris: {
         source: { type: 'vector', url: 'mapbox://hadrienleger.ak5sb828' },
         sourceLayer: 'iris-ign-petite-etendue-wgs84-7y17me',
@@ -83,6 +83,28 @@
         useFeatureStateClicked: true,
         isChoropleth: false,
         labels: { enabled: true, field: 'NOM_IRIS', textSize: 12, color: '#FFF', haloColor: '#000', haloWidth: 1 },
+        minzoom: 8,
+        maxzoom: 22
+      },
+      txcouv_creches: {
+        source: { type: 'vector', url: 'mapbox://hadrienleger.5ab8lona' },
+        sourceLayer: 'txcouv_creches_2022-4v4l8g',
+        isChoropleth: true,
+        property: 'txcouv_eaje_com',
+        breaks: [17.4, 27.1, 37.8, 53.2], // 4 seuils pour 5 intervalles
+        colors: ['#D2E3F9', '#9FC2F4', '#5C9CED', '#2F6BC7', '#0F3B66'], // 5 couleurs
+        nullColor: '#d3d3d3', // Gris clair pour les valeurs nulles
+        opacity: 0.8,
+        clickable: false,
+        labels: {
+          enabled: true,
+          field: 'txcouv_eaje_com',
+          textSize: 12,
+          color: '#333',
+          haloColor: 'rgba(255,255,255,0.8)',
+          haloWidth: 2,
+          labelFormat: 'number-1'
+        },
         minzoom: 8,
         maxzoom: 22
       },
@@ -156,6 +178,347 @@
       maxzoom: 22
     }
     };
+
+///// LAYER MANAGER //////
+window.layerManager = {
+  // État des layers par outil
+  state: {
+    trouver: {
+      activeLayers: new Set(),
+      irisLayers: new Set() // IRIS spécifiques à Trouver
+    },
+    explorer: {
+      activeLayers: new Set(),
+      irisLayers: new Set() // IRIS spécifiques à Explorer
+    }
+  },
+  
+  // Outil actuel
+  currentTool: 'explorer',
+  
+  // Layer choroplèthe actif (un seul à la fois)
+  activeChloropleth: null,
+  
+  // Popups actives
+  activePopups: [],
+
+  /**
+   * Initialise le gestionnaire
+   */
+  init() {
+    console.log('🎨 LayerManager initialized');
+    
+    // S'assurer que toutes les sources sont ajoutées
+    if (window.map && window.map.loaded()) {
+      this.ensureAllSources();
+    } else if (window.map) {
+      window.map.on('load', () => this.ensureAllSources());
+    }
+  },
+
+  /**
+   * Ajoute toutes les sources nécessaires
+   */
+  ensureAllSources() {
+    Object.entries(window.layerConfigs).forEach(([layerId, config]) => {
+      if (!window.map.getSource(layerId)) {
+        try {
+          window.map.addSource(layerId, config.source);
+          console.log(`✅ Source ${layerId} added`);
+        } catch (error) {
+          console.error(`❌ Error adding source ${layerId}:`, error);
+        }
+      }
+    });
+  },
+
+  /**
+   * Ajoute un layer
+   */
+  addLayer(layerId) {
+    const config = window.layerConfigs[layerId];
+    if (!config) {
+      console.error(`❌ Layer ${layerId} not found in config`);
+      return false;
+    }
+
+    // Vérifier les règles d'exclusivité pour les choroplèthes
+    if (config.isChoropleth) {
+      if (this.activeChloropleth) {
+        this.removeLayer(this.activeChloropleth);
+      }
+      this.activeChloropleth = layerId;
+    }
+
+    // Ajouter le layer selon son type
+    if (config.isPoints) {
+      this.addPointsLayer(layerId, config);
+    } else if (config.isChoropleth) {
+      this.addChoroplethLayer(layerId, config);
+    } else if (layerId === 'iris') {
+      // Gérer spécialement les IRIS
+      this.addIrisLayer(layerId, config);
+    }
+
+    // Mettre à jour l'état
+    this.state[this.currentTool].activeLayers.add(layerId);
+    
+    // Notifier Bubble
+    this.notifyBubble('layer_added', { layerId, tool: this.currentTool });
+    
+    return true;
+  },
+
+  /**
+   * Ajoute un layer de points
+   */
+  addPointsLayer(layerId, config) {
+    const pointLayerId = `${layerId}-points`;
+    
+    if (!window.map.getLayer(pointLayerId)) {
+      window.map.addLayer({
+        id: pointLayerId,
+        type: 'circle',
+        source: layerId,
+        'source-layer': config.sourceLayer,
+        paint: config.paint,
+        minzoom: config.minzoom || 0,
+        maxzoom: config.maxzoom || 22
+      });
+
+      // Ajouter les interactions si clickable
+      if (config.clickable) {
+        window.map.on('click', pointLayerId, (e) => this.handlePointClick(e, layerId, config));
+        window.map.on('mouseenter', pointLayerId, () => {
+          window.map.getCanvas().style.cursor = 'pointer';
+        });
+        window.map.on('mouseleave', pointLayerId, () => {
+          window.map.getCanvas().style.cursor = '';
+        });
+      }
+    } else {
+      window.map.setLayoutProperty(pointLayerId, 'visibility', 'visible');
+    }
+  },
+
+  /**
+   * Ajoute un layer choroplèthe (utilise le code existant)
+   */
+  addChoroplethLayer(layerId, config) {
+    // Utiliser la fonction existante
+    window.showChoroplethLayer(layerId);
+  },
+
+  /**
+   * Gère le clic sur un point
+   */
+  handlePointClick(e, layerId, config) {
+    if (!config.popup || !config.popup.fields) return;
+
+    const coordinates = e.features[0].geometry.coordinates.slice();
+    const properties = e.features[0].properties;
+
+    // Construire le contenu du popup
+    let popupContent = '<div class="popup-content">';
+    config.popup.fields.forEach(field => {
+      if (properties[field]) {
+        popupContent += `<div><strong>${this.formatFieldName(field)}:</strong> ${properties[field]}</div>`;
+      }
+    });
+    popupContent += '</div>';
+
+    // Créer et afficher le popup
+    const popup = new mapboxgl.Popup()
+      .setLngLat(coordinates)
+      .setHTML(popupContent)
+      .addTo(window.map);
+
+    this.activePopups.push(popup);
+  },
+
+  /**
+   * Supprime un layer
+   */
+  removeLayer(layerId) {
+    const config = window.layerConfigs[layerId];
+    if (!config) return false;
+
+    // Supprimer selon le type
+    if (config.isPoints) {
+      const pointLayerId = `${layerId}-points`;
+      if (window.map.getLayer(pointLayerId)) {
+        window.map.setLayoutProperty(pointLayerId, 'visibility', 'none');
+      }
+    } else if (config.isChoropleth) {
+      window.hideChoropleth();
+      if (this.activeChloropleth === layerId) {
+        this.activeChloropleth = null;
+      }
+    } else if (layerId === 'iris') {
+      // Gérer la suppression des IRIS
+      this.hideIrisLayers();
+    }
+
+    // Mettre à jour l'état
+    this.state[this.currentTool].activeLayers.delete(layerId);
+    
+    // Fermer les popups associés
+    this.closeAllPopups();
+    
+    // Notifier Bubble
+    this.notifyBubble('layer_removed', { layerId, tool: this.currentTool });
+    
+    return true;
+  },
+
+  /**
+   * Bascule entre les outils
+   */
+  switchTool(newTool) {
+    if (newTool === this.currentTool) return;
+
+    console.log(`🔄 Switching from ${this.currentTool} to ${newTool}`);
+
+    // Masquer tous les layers de l'outil actuel
+    this.hideCurrentToolLayers();
+
+    // Changer l'outil
+    this.currentTool = newTool;
+
+    // Restaurer les layers du nouvel outil
+    this.restoreToolLayers();
+
+    // Notifier Bubble
+    this.notifyBubble('tool_switched', { newTool });
+  },
+
+  /**
+   * Masque les layers de l'outil actuel
+   */
+  hideCurrentToolLayers() {
+    this.state[this.currentTool].activeLayers.forEach(layerId => {
+      const config = window.layerConfigs[layerId];
+      if (!config) return;
+
+      if (config.isPoints) {
+        const pointLayerId = `${layerId}-points`;
+        if (window.map.getLayer(pointLayerId)) {
+          window.map.setLayoutProperty(pointLayerId, 'visibility', 'none');
+        }
+      } else if (config.isChoropleth) {
+        window.hideChoropleth();
+      }
+    });
+
+    // Masquer aussi les IRIS spécifiques à l'outil
+    this.hideIrisLayers();
+    this.closeAllPopups();
+  },
+
+  /**
+   * Restaure les layers de l'outil
+   */
+  restoreToolLayers() {
+    // Restaurer le choroplèthe s'il y en avait un
+    const choroplethLayer = Array.from(this.state[this.currentTool].activeLayers)
+      .find(layerId => window.layerConfigs[layerId]?.isChoropleth);
+    
+    if (choroplethLayer) {
+      window.showChoroplethLayer(choroplethLayer);
+      this.activeChloropleth = choroplethLayer;
+    }
+
+    // Restaurer les autres layers
+    this.state[this.currentTool].activeLayers.forEach(layerId => {
+      const config = window.layerConfigs[layerId];
+      if (!config || config.isChoropleth) return; // Choroplèthe déjà traité
+
+      if (config.isPoints) {
+        const pointLayerId = `${layerId}-points`;
+        if (window.map.getLayer(pointLayerId)) {
+          window.map.setLayoutProperty(pointLayerId, 'visibility', 'visible');
+        }
+      }
+    });
+
+    // Restaurer les IRIS si nécessaire
+    if (this.currentTool === 'explorer' && window.lastIrisExplorer) {
+      // Restaurer les IRIS d'Explorer si disponibles
+      this.showIrisExplorer(window.lastIrisExplorer);
+    }
+  },
+
+  /**
+   * Retourne la liste des layers actifs
+   */
+  getActiveLayers() {
+    return Array.from(this.state[this.currentTool].activeLayers);
+  },
+
+  /**
+   * Supprime tous les layers
+   */
+  clearAllLayers() {
+    const layers = Array.from(this.state[this.currentTool].activeLayers);
+    layers.forEach(layerId => this.removeLayer(layerId));
+    this.closeAllPopups();
+  },
+
+  /**
+   * Gestion spécifique des IRIS pour Explorer
+   */
+  showIrisExplorer(irisData) {
+    // Sauvegarder pour la restauration
+    window.lastIrisExplorer = irisData;
+    
+    // Utiliser le système existant ou créer un layer spécifique
+    // À adapter selon votre implémentation actuelle
+  },
+
+  hideIrisLayers() {
+    // Masquer les layers IRIS
+    ['iris-temp', 'iris-temp-outline', 'iris-fill', 'iris-outline'].forEach(layerId => {
+      if (window.map.getLayer(layerId)) {
+        window.map.setLayoutProperty(layerId, 'visibility', 'none');
+      }
+    });
+  },
+
+  /**
+   * Ferme tous les popups
+   */
+  closeAllPopups() {
+    this.activePopups.forEach(popup => popup.remove());
+    this.activePopups = [];
+  },
+
+  /**
+   * Notifie Bubble des changements
+   */
+  notifyBubble(event, data) {
+    if (typeof bubble_fn_layerEvent === 'function') {
+      bubble_fn_layerEvent({ event, ...data });
+    }
+  },
+
+  /**
+   * Formate les noms de champs pour l'affichage
+   */
+  formatFieldName(field) {
+    const mapping = {
+      'nom': 'Nom',
+      'adresse': 'Adresse',
+      'prix': 'Prix',
+      'surface': 'Surface',
+      'prix_m2': 'Prix/m²',
+      'type_bien': 'Type de bien',
+      'date_vente': 'Date de vente',
+      'certification': 'Certification'
+    };
+    return mapping[field] || field;
+  }
+};
+///// Fin du layer manager //////
 
 ///// ZONE DE RECHERCHE //////
 /* ---------- fonctions globales appelées par Bubble ---------- */
@@ -310,6 +673,9 @@ window.runWhenMapReady = function (cb) {
               window.map.addSource(layerId, layerConfigs[layerId].source);
             }
           });
+
+        // Ajout de Claude pour gérer les layers
+        window.layerManager.init();
         });
 
         window.map.on('error', (e) => console.error('Erreur Mapbox :', e));
@@ -1232,7 +1598,13 @@ ensureIrisSelectedLayers();
         window.map.setFilter('iris-labels', filter);
       }
 
-      window.hideAllLayers();
+      // Au lieu de tout masquer (avant on faisait window.hideAllLayers), on ne masque que les autres IRIS
+      ['iris-fill', 'iris-outline', 'iris-labels'].forEach(layerId => {
+        if (window.map.getLayer(layerId)) {
+          window.map.setLayoutProperty(layerId, 'visibility', 'none');
+        }
+      });
+
       window.map.setLayoutProperty(targetLayerId, 'visibility', 'visible');
       if (window.map.getLayer('iris-outline')) {
         window.map.setLayoutProperty('iris-outline', 'visibility', 'visible');
@@ -1484,7 +1856,46 @@ function applySelectionPaint(allCodes, focusCode){
   }
 }
 
+/* ---------- Fonctions exposées à Bubble pour gérer les layers ---------- */
+window.addMapLayer = function(layerId) {
+  if (!window.layerManager) {
+    console.error('LayerManager not initialized');
+    return;
+  }
+  return window.layerManager.addLayer(layerId);
+};
 
+window.removeMapLayer = function(layerId) {
+  if (!window.layerManager) {
+    console.error('LayerManager not initialized');
+    return;
+  }
+  return window.layerManager.removeLayer(layerId);
+};
+
+window.switchMapTool = function(tool) {
+  if (!window.layerManager) {
+    console.error('LayerManager not initialized');
+    return;
+  }
+  return window.layerManager.switchTool(tool);
+};
+
+window.getActiveMapLayers = function() {
+  if (!window.layerManager) {
+    console.error('LayerManager not initialized');
+    return [];
+  }
+  return window.layerManager.getActiveLayers();
+};
+
+window.clearAllMapLayers = function() {
+  if (!window.layerManager) {
+    console.error('LayerManager not initialized');
+    return;
+  }
+  return window.layerManager.clearAllLayers();
+};
 
     // Démarrer l’initialisation
     setTimeout(initializeMap, 100);
