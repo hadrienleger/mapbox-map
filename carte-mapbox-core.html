@@ -108,6 +108,248 @@
         minzoom: 8,
         maxzoom: 22
       },
+      txcouv_assmats: {
+        source: { type: 'vector', url: 'mapbox://hadrienleger.5ab8lona' },
+        sourceLayer: 'txcouv_creches_2022-4v4l8g',
+        isChoropleth: true,
+        property: 'txcouv_am_ind_com',
+        breaks: [17.4, 27.1, 37.8, 53.2], // 4 seuils pour 5 intervalles
+        colors: ['#D2E3F9', '#9FC2F4', '#5C9CED', '#2F6BC7', '#0F3B66'], // 5 couleurs
+        nullColor: '#d3d3d3', // Gris clair pour les valeurs nulles
+        opacity: 0.8,
+        clickable: false,
+        labels: {
+          enabled: true,
+          field: 'txcouv_am_ind_com',
+          textSize: 12,
+          color: '#333',
+          haloColor: 'rgba(255,255,255,0.8)',
+          haloWidth: 2,
+          labelFormat: 'number-1'
+        },
+        minzoom: 8,
+        maxzoom: 22
+      },
+      txcouv_tousmodes: {
+        source: { type: 'vector', url: 'mapbox://hadrienleger.5ab8lona' },
+        sourceLayer: 'txcouv_creches_2022-4v4l8g',
+        isChoropleth: true,
+        property: 'txcouv_com',
+        breaks: [17.4, 27.1, 37.8, 53.2], // 4 seuils pour 5 intervalles
+        colors: ['#D2E3F9', '#9FC2F4', '#5C9CED', '#2F6BC7', '#0F3B66'], // 5 couleurs
+        nullColor: '#d3d3d3', // Gris clair pour les valeurs nulles
+        opacity: 0.8,
+        clickable: false,
+        labels: {
+          enabled: true,
+          field: 'txcouv_com',
+          textSize: 12,
+          color: '#333',
+          haloColor: 'rgba(255,255,255,0.8)',
+          haloWidth: 2,
+          labelFormat: 'number-1'
+        },
+        minzoom: 8,
+        maxzoom: 22
+      },
+      eaje_points: {
+        source: { 
+          type: 'vector', 
+          url: 'mapbox://hadrienleger.0xtn83cx'
+        },
+        sourceLayer: 'bpe2024_eaje-22sm96',
+        isPoints: true,
+        paint: {
+          'circle-radius': ['interpolate', ['linear'], ['zoom'], 11, 4, 15, 8],
+          'circle-color': '#4CAF50',
+          'circle-stroke-color': '#ffffff',
+          'circle-stroke-width': 2,
+          'circle-opacity': 0.8
+        },
+        clickable: true,
+        popup: {
+          fields: ['nom', 'adresse', 'accueil', 'capacite'],
+          // Mapping pour affichage élégant
+          fieldLabels: {
+            'nom': 'Nom',
+            'adresse': 'Adresse',
+            'accueil': 'Type d\'établissement',
+            'capacite': 'Nombre de places'
+          }
+        },
+        minzoom: 10,
+        maxzoom: 22
+      },
+      points_ecoles: {
+        source: { 
+          type: 'vector', 
+          url: 'mapbox://hadrienleger.3jgy0bed'
+        },
+        sourceLayer: 'points_ecoles-3q4w5i',
+        isPoints: true,
+        paint: {
+          'circle-radius': ['interpolate', ['linear'], ['zoom'], 11, 4, 15, 8],
+          'circle-color': '#4CAF50',
+          'circle-stroke-color': '#ffffff',
+          'circle-stroke-width': 2,
+          'circle-opacity': 0.8
+        },
+        clickable: true,
+        popup: {
+          fields: ['nom_ecole', 'secteur', 'adresse_ecole', 'ips', 'etat', 'code_rne'],
+          // Mapping pour affichage élégant
+          fieldLabels: {
+            'nom_ecole': "Nom de l'école",
+            'secteur': 'Public/privé',
+            'adresse_ecole': 'Adresse',
+            'ips': 'IPS',
+            'etat': 'Ouvert/Fermé',
+            'code_rne': 'Code RNE'
+          }
+        },
+        minzoom: 10,
+        maxzoom: 22
+      },
+      top_ecole_300m: {
+        source: { 
+          type: 'vector', 
+          url: 'mapbox://hadrienleger.cdwvsbui'
+        },
+        sourceLayer: 'iris_top_ecole_300m-8y6jjr',
+        isChoropleth: true,
+        property: 'ips_pu',  // Valeur initiale par défaut
+        breaks: [86, 100, 112, 126.8],
+        colors: ['#D2E3F9', '#9FC2F4', '#5C9CED', '#2F6BC7', '#0F3B66'], // 5 couleurs
+        nullColor: '#d3d3d3', // Gris clair pour les valeurs nulles
+        opacity: 0.8,
+        clickable: true,
+        popup: {
+          fields: ['nom_iris', 'nom_pu', 'ips_pu', 'adresse_pu', 'nom_pr', 'ips_pr', 'adresse_pr'],
+          // Mapping pour affichage élégant
+          fieldLabels: {
+            'nom_iris': 'Nom du quartier',
+            'nom_pu': 'Meilleure école publique',
+            'ips_pu': 'IPS',
+            'adresse_pu': 'Adresse',
+            'nom_pr': 'Meilleure école privée',
+            'ips_pr': 'IPS',
+            'adresse_pr': 'Adresse'
+          }
+        },
+        labels: {
+          enabled: false,
+          field: 'ips_pu',  // Valeur initiale par défaut
+          textSize: 12,
+          color: '#333',
+          haloColor: 'rgba(255,255,255,0.8)',
+          haloWidth: 2,
+          labelFormat: 'number-1'
+        },
+         minzoom: 8,
+         maxzoom: 22
+            },
+top_ecole_600m: {
+  source: { 
+    type: 'vector', 
+    url: 'mapbox://hadrienleger.dqk8grr8'  // À remplacer
+  },
+  sourceLayer: 'top_ecole_600m-7qckte',  // À remplacer
+  isChoropleth: true,
+  property: 'ips_pu',
+  breaks: [86, 100, 112, 126.8],
+  colors: ['#D2E3F9', '#9FC2F4', '#5C9CED', '#2F6BC7', '#0F3B66'],
+  nullColor: '#d3d3d3',
+  opacity: 0.8,
+  clickable: true,
+  popup: {
+    fields: ['nom_iris', 'nom_pu', 'ips_pu', 'adresse_pu', 'nom_pr', 'ips_pr', 'adresse_pr'],
+    fieldLabels: {
+      'nom_iris': 'Nom du quartier',
+      'nom_pu': 'Meilleure école publique',
+      'ips_pu': 'IPS',
+      'adresse_pu': 'Adresse',
+      'nom_pr': 'Meilleure école privée',
+      'ips_pr': 'IPS',
+      'adresse_pr': 'Adresse'
+    }
+  },
+  labels: {
+    enabled: false,
+    field: 'ips_pu',
+    textSize: 12,
+    color: '#333',
+    haloColor: 'rgba(255,255,255,0.8)',
+    haloWidth: 2,
+    labelFormat: 'number-1'
+  },
+  minzoom: 8,
+  maxzoom: 22
+},
+top_colleges: {
+  source: { 
+    type: 'vector', 
+    url: 'mapbox://hadrienleger.1nte6eib'  // À remplacer
+  },
+  sourceLayer: 'top_colleges-bwea0c',  // À remplacer
+  isChoropleth: true,
+  property: 'note_college',
+  breaks: [8, 10.29, 12.29, 14.57],  // À ajuster selon vos données
+  colors: ['#D2E3F9', '#9FC2F4', '#5C9CED', '#2F6BC7', '#0F3B66'],
+  nullColor: '#d3d3d3',
+  opacity: 0.8,
+  clickable: true,
+  popup: {
+    fields: ['nom_iris', 'nom_college', 'note_college', 'adresse_college', 'secteur', 'etat'],
+    fieldLabels: {
+      'nom_iris': 'Quartier',
+      'nom_college': 'Meilleur collège rattaché par la carte scolaire',
+      'note_college': 'Note /20',
+      'adresse_college': 'Adresse',
+      'secteur': 'Public/privé',
+      'etat': 'Ouvert/Fermé'
+    }
+  },
+  labels: {
+    enabled: false,
+    field: 'note_college',
+    textSize: 12,
+    color: '#333',
+    haloColor: 'rgba(255,255,255,0.8)',
+    haloWidth: 2,
+    labelFormat: 'number-1'
+  },
+  minzoom: 8,
+  maxzoom: 22
+},
+      points_colleges: {
+        source: { 
+          type: 'vector', 
+          url: 'mapbox://hadrienleger.99z0ngtm'  // À remplacer
+        },
+        sourceLayer: 'points_colleges-13ermp',  // À remplacer
+              isPoints: true,
+              paint: {
+                'circle-radius': ['interpolate', ['linear'], ['zoom'], 11, 4, 15, 8],
+                'circle-color': '#4CAF50',
+                'circle-stroke-color': '#ffffff',
+                'circle-stroke-width': 2,
+                'circle-opacity': 0.8
+              },
+              clickable: true,
+        popup: {
+          fields: ['nom_college', 'note_college', 'adresse_college', 'secteur', 'etat', 'noms_iris'],
+          fieldLabels: {
+            'nom_college': 'Collège',
+            'note_college': 'Note /20',
+            'adresse_college': 'Adresse',
+            'secteur': 'Public/privé',
+            'etat': 'Ouvert/Fermé',
+            'noms_iris': 'Quartiers rattachés selon la carte scolaire'
+          }
+        },
+        minzoom: 10,
+        maxzoom: 22
+      },
       rev_decl: {
         source: { type: 'vector', url: 'mapbox://hadrienleger.2s705opr' },
         sourceLayer: 'carte_iris_revdecl_2021-dugg0i',
@@ -312,29 +554,29 @@ window.layerManager = {
   /**
    * Gère le clic sur un point
    */
-  handlePointClick(e, layerId, config) {
-    if (!config.popup || !config.popup.fields) return;
+handlePointClick(e, layerId, config) {
+  if (!config.popup || !config.popup.fields) return;
 
-    const coordinates = e.features[0].geometry.coordinates.slice();
-    const properties = e.features[0].properties;
+  const coordinates = e.features[0].geometry.coordinates.slice();
+  const properties = e.features[0].properties;
 
-    // Construire le contenu du popup
-    let popupContent = '<div class="popup-content">';
-    config.popup.fields.forEach(field => {
-      if (properties[field]) {
-        popupContent += `<div><strong>${this.formatFieldName(field)}:</strong> ${properties[field]}</div>`;
-      }
-    });
-    popupContent += '</div>';
+  let popupContent = '<div class="popup-content">';
+  config.popup.fields.forEach(field => {
+    if (properties[field]) {
+      // Utiliser le label personnalisé s'il existe
+      const label = config.popup.fieldLabels?.[field] || this.formatFieldName(field);
+      popupContent += `<div><strong>${label}:</strong> ${properties[field]}</div>`;
+    }
+  });
+  popupContent += '</div>';
 
-    // Créer et afficher le popup
-    const popup = new mapboxgl.Popup()
-      .setLngLat(coordinates)
-      .setHTML(popupContent)
-      .addTo(window.map);
+  const popup = new mapboxgl.Popup()
+    .setLngLat(coordinates)
+    .setHTML(popupContent)
+    .addTo(window.map);
 
-    this.activePopups.push(popup);
-  },
+  this.activePopups.push(popup);
+},
 
   /**
    * Supprime un layer
@@ -1023,15 +1265,27 @@ window.focusIrisFromBubble = function(codeIris){
 /* =========  UTILITAIRE : capter les clics sur iris-fill et iris-temp  ========== */
 function registerIrisClickListeners() {
   ['iris-fill', 'iris-temp'].forEach(layerId => {
-    if (window.map.getLayer(layerId) && !window.map.listens?.('click', layerId)) {
+    // Retirer les anciens listeners pour éviter les doublons
+    window.map.off('click', layerId);
+    window.map.off('mouseenter', layerId);
+    window.map.off('mouseleave', layerId);
+    
+    if (window.map.getLayer(layerId)) {
       window.map.on('click', layerId, e => {
         const codeIris = e.features[0].properties['CODE_IRIS'];
+        console.log('IRIS cliqué:', codeIris);
         window.selectGeometry('iris', codeIris);
       });
-      window.map.on('mouseenter', layerId, () =>
-        window.map.getCanvas().style.cursor = 'pointer');
-      window.map.on('mouseleave', layerId, () =>
-        window.map.getCanvas().style.cursor = '');
+      
+      window.map.on('mouseenter', layerId, () => {
+        window.map.getCanvas().style.cursor = 'pointer';
+      });
+      
+      window.map.on('mouseleave', layerId, () => {
+        window.map.getCanvas().style.cursor = '';
+      });
+      
+      console.log(`✅ Listeners ajoutés pour ${layerId}`);
     }
   });
 }
@@ -1105,6 +1359,42 @@ let fillPaintObj;
       ];
     }
   }
+
+
+// Gestion spéciale pour le layer iris_meilleure_ecole
+if (layerId === 'iris_meilleure_ecole') {
+  const radius = window.currentEcoleRadius || '300';
+  const secteur = window.currentEcoleSecteur || 'Public et privé';
+  
+  // Mettre à jour la propriété en fonction du rayon
+  config.property = `ecole_${radius}_ips`;
+  if (config.labels) {
+    config.labels.field = `ecole_${radius}_ips`;
+  }
+  
+  // Appliquer le filtre après la création des couches
+  window.map.once('idle', () => {
+    if (secteur !== 'Public et privé') {
+      const secteurField = `ecole_${radius}_secteur`;
+      
+      // Créer le filtre
+      const filter = ['==', ['get', secteurField], secteur];
+      
+      // Appliquer sur toutes les couches
+      if (window.map.getLayer(fillLayerId)) {
+        window.map.setFilter(fillLayerId, filter);
+      }
+      if (window.map.getLayer(outlineLayerId)) {
+        window.map.setFilter(outlineLayerId, filter);
+      }
+      if (config.labels?.enabled && window.map.getLayer(labelLayerId)) {
+        window.map.setFilter(labelLayerId, filter);
+      }
+    }
+  });
+}
+
+  
 
   const fillLayerId = layerId + '-fill';
   if (window.map.getLayer(fillLayerId)) {
@@ -1239,6 +1529,81 @@ switch (config.labels.labelFormat) {
     window.map.on('mouseenter', fillLayerId, () => window.map.getCanvas().style.cursor = 'pointer');
     window.map.on('mouseleave', fillLayerId, () => window.map.getCanvas().style.cursor = '');
   }
+
+// Modif de la fonction pour gérer les pop-ups des cartes choropleths
+if (config.clickable && config.popup) {
+  const fillLayerId = layerId + '-fill';
+  
+  // Créer le popup
+  const popup = new mapboxgl.Popup({
+    closeButton: true,
+    closeOnClick: true
+  });
+
+  // Sur le clic
+  window.map.on('click', fillLayerId, (e) => {
+    if (e.features.length === 0) return;
+    
+    const feature = e.features[0];
+    const properties = feature.properties;
+    
+    // Construire le contenu du popup
+    let popupContent = '<div class="popup-content">';
+    
+    // Pour les écoles, affichage conditionnel selon le secteur
+    if (layerId.startsWith('top_ecole_')) {
+      const secteur = window.currentEcoleSecteur || 'Public et privé';
+      
+      // Toujours afficher le nom du quartier
+      if (properties.nom_iris) {
+        popupContent += `<div><strong>Quartier :</strong> ${properties.nom_iris}</div><hr>`;
+      }
+      
+      // Afficher selon le secteur sélectionné
+      if (secteur === 'Public' || secteur === 'Public et privé') {
+        if (properties.nom_pu) {
+          popupContent += `<div><strong>Meilleure école publique à 300m :</strong> ${properties.nom_pu}</div>`;
+          if (properties.ips_pu) popupContent += `<div><strong>IPS :</strong> ${properties.ips_pu}</div>`;
+          if (properties.adresse_pu) popupContent += `<div><strong>Adresse :</strong> ${properties.adresse_pu}</div>`;
+        }
+      }
+      
+      if ((secteur === 'Privé' || secteur === 'Public et privé') && properties.nom_pr) {
+        if (secteur === 'Public et privé' && properties.nom_pu) popupContent += '<hr>';
+        popupContent += `<div><strong>Meilleure école privée à 300m :</strong> ${properties.nom_pr}</div>`;
+        if (properties.ips_pr) popupContent += `<div><strong>IPS :</strong> ${properties.ips_pr}</div>`;
+        if (properties.adresse_pr) popupContent += `<div><strong>Adresse :</strong> ${properties.adresse_pr}</div>`;
+      }
+    } else {
+      // Pour les autres choroplèthes, affichage standard
+      config.popup.fields.forEach(field => {
+        if (properties[field] !== null && properties[field] !== undefined) {
+          const label = config.popup.fieldLabels?.[field] || field;
+          popupContent += `<div><strong>${label}:</strong> ${properties[field]}</div>`;
+        }
+      });
+    }
+    
+    popupContent += '</div>';
+    
+    // Afficher le popup
+    popup.setLngLat(e.lngLat)
+      .setHTML(popupContent)
+      .addTo(window.map);
+  });
+
+  // Changer le curseur au survol
+  window.map.on('mouseenter', fillLayerId, () => {
+    window.map.getCanvas().style.cursor = 'pointer';
+  });
+  
+  window.map.on('mouseleave', fillLayerId, () => {
+    window.map.getCanvas().style.cursor = '';
+  });
+}
+
+
+
 }
 
 
@@ -1512,7 +1877,7 @@ window.lastIrisList = codes.slice();   // copie défensive
           'fill-opacity': 0.25
         },
         filter: ['match', ['get', 'CODE_IRIS'], codes, true, false]
-      }, 'settlement-subdivision-label');
+      });
       registerIrisClickListeners();
 
 /* ⬇️  ajoute ceci (s'assurer que les couches de sélection s'affichent)*/
@@ -1531,7 +1896,7 @@ ensureIrisSelectedLayers();
           'line-opacity': 1
         },
         filter: ['match', ['get', 'CODE_IRIS'], codes, true, false]
-      }, 'settlement-subdivision-label');
+      });
 
       targetLayerId = 'iris-temp';
     } catch (error) {
@@ -1549,7 +1914,13 @@ ensureIrisSelectedLayers();
         }
       }
     });
-    registerIrisClickListeners();   // ← nouveau
+// Pour les couches existantes, on attend qu'elles soient visibles
+window.map.once('idle', () => {
+  setTimeout(() => {
+    registerIrisClickListeners();
+    console.log('🎯 Listeners IRIS enregistrés pour couches existantes');
+  }, 100);
+});
   }
 
   window.map.once('idle', () => {
@@ -1895,6 +2266,54 @@ window.clearAllMapLayers = function() {
     return;
   }
   return window.layerManager.clearAllLayers();
+};
+
+// Change les rayons des écoles et le secteur sur les cartes choropleths
+window.configureEcoles = function(radius, secteur) {
+  const validRadius = ['300', '600', '1000', '2000', '5000'];
+  const validSecteurs = ['Public', 'Privé', 'Public et privé'];
+  
+  if (!validRadius.includes(radius)) radius = '300';
+  if (!validSecteurs.includes(secteur)) secteur = 'Public et privé';
+  
+  // Sauvegarder les paramètres actuels
+  window.currentEcoleRadius = radius;
+  window.currentEcoleSecteur = secteur;
+  
+  // Déterminer le layer à utiliser
+  const layerId = `top_ecole_${radius}m`;
+  const config = window.layerConfigs[layerId];
+  
+  if (!config) {
+    console.error(`Layer ${layerId} non trouvé`);
+    return;
+  }
+  
+  // Configurer la propriété selon le secteur
+  if (secteur === 'Public') {
+    config.property = 'ips_pu';
+  } else if (secteur === 'Privé') {
+    config.property = 'ips_pr';
+  } else {
+    // Pour "Public et privé", utiliser le meilleur des deux
+    // Vous pourriez créer une propriété calculée côté SQL ou utiliser une expression Mapbox
+    config.property = 'ips_pu'; // Ou une logique plus complexe
+  }
+  
+  if (config.labels) {
+    config.labels.field = config.property;
+  }
+  
+  // Masquer tous les autres layers écoles
+  ['300', '600', '1000', '2000', '5000'].forEach(r => {
+    const otherId = `top_ecole_${r}m`;
+    if (otherId !== layerId && window.layerManager.state[window.layerManager.currentTool].activeLayers.has(otherId)) {
+      window.removeMapLayer(otherId);
+    }
+  });
+  
+  // Afficher le bon layer
+  window.addMapLayer(layerId);
 };
 
     // Démarrer l’initialisation
