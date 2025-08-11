@@ -350,75 +350,173 @@ top_colleges: {
         minzoom: 10,
         maxzoom: 22
       },
-      rev_decl: {
-        source: { type: 'vector', url: 'mapbox://hadrienleger.2s705opr' },
-        sourceLayer: 'carte_iris_revdecl_2021-dugg0i',
-        isChoropleth: true,
-        property: 'mediane_rev_decl',
-        breaks: [17370, 22660, 27960, 37840, 77180], // 5 seuils
-        colors: ['#eff3ff', '#c6dbef', '#9ecae1', '#6baed6', '#08519c', '#08519c'], // 6 couleurs
-        nullColor: '#d3d3d3', // Gris clair pour les valeurs nulles
-        opacity: 0.8,
-        clickable: false,
-        isChoropleth: true,
-        labels: {
-        enabled: true,
-        field: 'mediane_rev_decl',
-        textSize: 12,
-        color: '#333',
-        haloColor: 'rgba(255,255,255,0.8)',
-        haloWidth: 2,
-        labelFormat: 'currency-euro',
-        minzoom: 12
-         },
-        minzoom: 8,
-        maxzoom: 22
-      },
-      log_soc: {
-        source: { type: 'vector', url: 'mapbox://hadrienleger.4m17bbun' },
-        sourceLayer: 'carte_iris_logsoc_2021-7slbph',
-        isChoropleth: true,
-        property: 'part_log_soc',
-        breaks: [0.065, 0.2, 0.41, 0.695, 1], // 5 seuils
-        colors: ['#eff3ff', '#c6dbef', '#9ecae1', '#6baed6', '#08519c', '#08519c'], // 6 couleurs
-        nullColor: '#d3d3d3', // Gris clair pour les valeurs nulles
-        opacity: 0.8,
-        clickable: false,
-        isChoropleth: true,
-        labels: {
-        enabled: true,
-        field: 'part_log_soc',
-        textSize: 12,
-        color: '#333',
-        haloColor: 'rgba(255,255,255,0.8)',
-        haloWidth: 2,
-        labelFormat: 'percent-0'
-        },
-        minzoom: 8,
-        maxzoom: 22
-      },
-      notesInsecurite: {
-      source: { type: 'vector', url: 'mapbox://hadrienleger.7ypxua5r' },
-      sourceLayer: 'communes_securite-2449ue',
-      isChoropleth: true,
-      property: 'note_sur_20',
-      breaks: [8.32, 11.46, 13.67, 17.33, 20], // 5 seuils
-      colors: ['#eff3ff', '#c6dbef', '#9ecae1', '#6baed6', '#08519c', '#08519c'], // 6 couleurs
-      nullColor: '#d3d3d3', // Gris clair pour les valeurs nulles
-      opacity: 0.8,
-      clickable: false,
-      labels: {
-        enabled: true,
-        field: 'note_sur_20',
-        textSize: 12,
-        color: '#333',
-        haloColor: 'rgba(255,255,255,0.8)',
-        haloWidth: 2,
-        labelFormat: 'number-1'
-      },
-      minzoom: 8,
-      maxzoom: 22
+part_log_soc: {
+  source: { 
+    type: 'vector', 
+    url: 'mapbox://hadrienleger.6drw6ii3'  // À remplacer
+  },
+  sourceLayer: 'part_log_soc-4u7xad',  // À remplacer
+  isChoropleth: true,
+  property: 'part_log_soc',
+  breaks: [0.065, 0.2, 0.41, 0.695],
+  colors: ['#D2E3F9', '#9FC2F4', '#5C9CED', '#2F6BC7', '#0F3B66'],
+  nullColor: '#d3d3d3',
+  opacity: 0.8,
+  clickable: true,
+  popup: {
+    fields: ['nom_iris', 'part_log_soc', 'nb_logsoc', 'txlsplai', 'txlsplus', 'txlspls', 'txlspli'],
+    fieldLabels: {
+      'nom_iris': 'Nom du quartier',
+      'part_log_soc': 'Pourcentage de logements sociaux',
+      'nb_logsoc': 'Nombre de logements sociaux',
+      'txlsplai': 'Part des logements sociaux PLAI',
+      'txlsplus': 'Part des logements sociaux PLUS (ex-HLM)',
+      'txlspls': 'Part des logements sociaux PLS',
+      'txlspli': 'Part des logements sociaux PLI'
+    },
+    format: {
+      'part_log_soc': 'percent-0' // Formatage en pourcentage sans décimales
     }
+  },
+  labels: {
+    enabled: false,
+    field: 'part_log_soc',
+    textSize: 12,
+    color: '#333',
+    haloColor: 'rgba(255,255,255,0.8)',
+    haloWidth: 2,
+    labelFormat: 'number-1'
+  },
+  minzoom: 8,
+  maxzoom: 22
+},
+points_logsoc_regions1: {
+  source: { 
+    type: 'vector', 
+    url: 'mapbox://hadrienleger.3mz24mlc'
+  },
+  sourceLayer: 'points_logsoc_regions1-9dcope',
+  isPoints: true,
+  paint: {
+    'circle-radius': [
+      'interpolate',
+      ['exponential', 0.5],
+      ['get', 'nb_logements'],
+      1, 3,
+      10, 6,
+      30, 10,
+      60, 15,
+      100, 20,
+      200, 25
+    ],
+    'circle-color': '#8B4513',
+    'circle-stroke-color': '#ffffff',
+    'circle-stroke-width': [
+      'interpolate',
+      ['linear'],
+      ['zoom'],
+      10, 0.5,
+      15, 2
+    ],
+    'circle-opacity': 0.8
+  },
+  clickable: true,
+  popup: {
+    fields: ['adresse', 'codepostal', 'libcom', 'nb_logements', 'nb_plai', 'nb_plus', 'nb_pls', 'nb_pli', 'nb_autres', 'bat', 'immeu'],
+    fieldLabels: {
+      'adresse': 'Adresse',
+      'codepostal': 'Code postal',
+      'libcom': 'Commune',
+      'nb_logements': 'Nombre de logements sociaux',
+      'nb_plai': 'Logements de type PLAI',
+      'nb_plus': 'Logements de type PLUS',
+      'nb_pls': 'Logements de type PLS',
+      'nb_pli': 'Logements de type PLI',
+      'nb_autres': 'Logements de type Autres',
+      'bat': 'Bâtiment',
+      'immeu': 'Immeuble'
+    }
+  },
+  minzoom: 10,
+  maxzoom: 22
+},
+points_logsoc_regions2: {
+  source: { 
+    type: 'vector', 
+    url: 'mapbox://hadrienleger.08rj6o2k'
+  },
+  sourceLayer: 'points_logsoc_regions2-4sv755',
+  isPoints: true,
+  paint: {
+    'circle-radius': [
+      'interpolate',
+      ['exponential', 0.5],
+      ['get', 'nb_logements'],
+      1, 3,
+      10, 6,
+      30, 10,
+      60, 15,
+      100, 20,
+      200, 25
+    ],
+    'circle-color': '#8B4513',
+    'circle-stroke-color': '#ffffff',
+    'circle-stroke-width': [
+      'interpolate',
+      ['linear'],
+      ['zoom'],
+      10, 0.5,
+      15, 2
+    ],
+    'circle-opacity': 0.8
+  },
+  clickable: true,
+  popup: {
+    fields: ['adresse', 'codepostal', 'libcom', 'nb_logements', 'nb_plai', 'nb_plus', 'nb_pls', 'nb_pli', 'nb_autres', 'bat', 'immeu'],
+    fieldLabels: {
+      'adresse': 'Adresse',
+      'codepostal': 'Code postal',
+      'libcom': 'Commune',
+      'nb_logements': 'Nombre de logements sociaux',
+      'nb_plai': 'Logements de type PLAI',
+      'nb_plus': 'Logements de type PLUS',
+      'nb_pls': 'Logements de type PLS',
+      'nb_pli': 'Logements de type PLI',
+      'nb_autres': 'Logements de type Autres',
+      'bat': 'Bâtiment',
+      'immeu': 'Immeuble'
+    }
+  },
+  minzoom: 10,
+  maxzoom: 22
+},
+magasins_bio: {
+    source: { 
+      type: 'vector', 
+      url: 'mapbox://hadrienleger.2hy4pin8'
+    },
+    sourceLayer: 'magasins_bio-b1pigw',
+    isPoints: true,
+    paint: {
+      'circle-radius': ['interpolate', ['linear'], ['zoom'], 11, 4, 15, 8],
+      'circle-color': '#4CAF50',
+      'circle-stroke-color': '#ffffff',
+      'circle-stroke-width': 2,
+      'circle-opacity': 0.8
+    },
+    clickable: true,
+    popup: {
+      fields: ['nom', 'prod_nom', 'adresse'],
+      // Mapping pour affichage élégant
+      fieldLabels: {
+        'nom': 'Nom',
+        'prod_nom': 'Type de magasin',
+        'adresse': 'Adresse'
+      }
+    },
+    minzoom: 10,
+    maxzoom: 22
+  }
     };
 
 ///// LAYER MANAGER //////
@@ -1579,7 +1677,24 @@ if (config.clickable && config.popup) {
       config.popup.fields.forEach(field => {
         if (properties[field] !== null && properties[field] !== undefined) {
           const label = config.popup.fieldLabels?.[field] || field;
-          popupContent += `<div><strong>${label}:</strong> ${properties[field]}</div>`;
+
+        let value = properties[field];
+        
+        // Formatage spécial pour part_log_soc
+        if (layerId === 'part_log_soc') {
+          if (field === 'part_log_soc') {
+            // Convertir en pourcentage sans décimales
+            value = Math.round(value * 100) + '%';
+          } else if (['txlsplai', 'txlsplus', 'txlspls', 'txlspli'].includes(field)) {
+            // Arrondir et ajouter %
+            value = Math.round(value) + '%';
+          } else if (field === 'nb_logsoc') {
+            // Garder tel quel (nombre entier)
+            value = Math.round(value);
+          }
+        }
+
+          popupContent += `<div><strong>${label}:</strong> ${value}</div>`;
         }
       });
     }
