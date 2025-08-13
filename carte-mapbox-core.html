@@ -516,25 +516,223 @@ magasins_bio: {
     },
     minzoom: 10,
     maxzoom: 22
-  }
+  },
+  securite_communes: {
+  source: { 
+    type: 'vector', 
+    url: 'mapbox://hadrienleger.7ar67jl5'
+  },
+  sourceLayer: 'securite_communes-81jxzi',
+  isChoropleth: true,
+  property: 'note_v1',  // Valeur initiale par défaut
+  breaks: [8.91, 11.73, 13.85, 17.58],
+  colors: ['#D2E3F9', '#9FC2F4', '#5C9CED', '#2F6BC7', '#0F3B66'], // 5 couleurs
+  nullColor: '#d3d3d3', // Gris clair pour les valeurs nulles
+  opacity: 0.8,
+  clickable: true,
+  popup: {
+    fields: ['libelle_commune', 'note_v1'],
+    // Mapping pour affichage élégant
+    fieldLabels: {
+      'libelle_commune': 'Nom de la commune',
+      'note_v1': 'Note de sécurité /20'
+    }
+  },
+  labels: {
+    enabled: false,
+    field: 'note_v1',  // Valeur initiale par défaut
+    textSize: 12,
+    color: '#333',
+    haloColor: 'rgba(255,255,255,0.8)',
+    haloWidth: 2,
+    labelFormat: 'number-1'
+  },
+   minzoom: 8,
+   maxzoom: 22
+      },
+prix_median: {
+  source: { 
+    type: 'vector', 
+    url: 'mapbox://hadrienleger.7dx7aj7b'
+  },
+  sourceLayer: 'prixmedians_2024_s1-dryw5c',
+  isChoropleth: true,
+  property: 'prix_median',
+  
+  // Breaks multiscales extraits du JSON
+  breaksConfig: {
+    national: [1932, 3659, 7207, 28478],
+    
+    regional: {
+      'ARA': [1591, 2694, 3991, 6425],
+      'HDF': [1125, 1708, 2356, 3321],
+      'PAC': [2616, 4103, 6262, 13871],
+      'GES': [842, 1469, 2232, 4762],
+      'OCC': [1169, 1915, 2733, 3810],
+      'NOR': [1315, 1939, 2636, 3956],
+      'NAQ': [1483, 2847, 5000, 13201],
+      'CVL': [1082, 1694, 2413, 6875],
+      'BFC': [953, 1615, 2464, 4947],
+      'BRE': [1562, 2327, 3280, 4623],
+      'COR': [1481, 2738, 4104, 5905],
+      'PDL': [1343, 2063, 2902, 4141],
+      'IDF': [3451, 5449, 8167, 12074]
+    },
+    
+    departmental: {
+      '01': [1333, 2050, 2773, 3833],
+      '02': [775, 1250, 1702, 2491],
+      '03': [685, 1144, 1622, 2308],
+      '04': [1254, 1931, 2692, 4014],
+      '05': [976, 1900, 2645, 3468],
+      '06': [2653, 4211, 5694, 8410],
+      '07': [1470, 2250, 3275, 4636],
+      '08': [598, 1054, 1565, 2348],
+      '09': [967, 1583, 2341, 3873],
+      '10': [795, 1251, 1715, 2396],
+      '11': [812, 1358, 1948, 2926],
+      '12': [764, 1300, 1807, 2505],
+      '13': [2704, 4075, 6115, 13140],
+      '14': [1756, 2594, 3490, 5150],
+      '15': [600, 986, 1377, 1819],
+      '16': [710, 1128, 1508, 1978],
+      '17': [1480, 2481, 3714, 5588],
+      '18': [731, 1181, 1668, 2675],
+      '19': [731, 1175, 1571, 2077],
+      '21': [1123, 1910, 2680, 4484],
+      '22': [1333, 1986, 2768, 4065],
+      '23': [451, 798, 1217, 1727],
+      '24': [948, 1492, 2068, 3094],
+      '25': [1298, 2062, 2928, 4823],
+      '26': [1571, 2374, 3162, 5514],
+      '27': [1296, 1827, 2320, 3233],
+      '28': [1243, 1724, 2226, 3125],
+      '29': [1274, 1798, 2305, 2966],
+      '2A': [1875, 3333, 4556, 5618],
+      '2B': [1390, 2508, 3320, 4391],
+      '30': [1568, 2361, 3059, 4018],
+      '31': [1404, 2222, 2967, 3926],
+      '32': [827, 1414, 2000, 2857],
+      '33': [2478, 3869, 7000, 13201],
+      '34': [1649, 2604, 3447, 4320],
+      '35': [1741, 2485, 3381, 4527],
+      '36': [418, 770, 1084, 1459],
+      '37': [1214, 1823, 2376, 3026],
+      '38': [1844, 2602, 3398, 4952],
+      '39': [1189, 1855, 2746, 4947],
+      '40': [1464, 2413, 3442, 5500],
+      '41': [1185, 1698, 2982, 10143],
+      '42': [1190, 1800, 2511, 3986],
+      '43': [538, 1032, 1484, 2061],
+      '44': [1968, 2777, 3542, 4688],
+      '45': [1139, 1714, 2385, 4099],
+      '46': [896, 1462, 1886, 2400],
+      '47': [799, 1335, 1816, 2533],
+      '48': [760, 1406, 2018, 3209],
+      '49': [1400, 1912, 2430, 3119],
+      '50': [1180, 1692, 2213, 3000],
+      '51': [1300, 2006, 2835, 4762],
+      '52': [508, 916, 1327, 1877],
+      '53': [837, 1279, 1750, 2575],
+      '54': [867, 1476, 2091, 2893],
+      '55': [688, 1191, 1765, 2618],
+      '56': [1817, 2758, 3939, 5472],
+      '58': [615, 952, 1392, 1900],
+      '59': [1188, 1759, 2410, 3278],
+      '60': [1370, 1939, 2503, 3373],
+      '61': [856, 1365, 1925, 2923],
+      '62': [1183, 1820, 2667, 4310],
+      '63': [886, 1474, 2007, 2551],
+      '64': [1623, 2938, 4459, 6196],
+      '65': [1136, 1851, 2786, 4137],
+      '66': [1273, 2038, 2947, 4598],
+      '69': [2169, 3205, 4140, 5223],
+      '70': [800, 1349, 1911, 3001],
+      '71': [929, 1390, 1831, 2529],
+      '72': [873, 1273, 1623, 2028],
+      '73': [2160, 3211, 4542, 7231],
+      '74': [2949, 4164, 5448, 7537],
+      '75': [8471, 10616, 13548, 18218],
+      '76': [1215, 1750, 2219, 2772],
+      '77': [1693, 2403, 3103, 3895],
+      '78': [2659, 3554, 4578, 6071],
+      '79': [579, 1011, 1417, 1867],
+      '80': [984, 1456, 1988, 2784],
+      '81': [1059, 1633, 2190, 3015],
+      '82': [1091, 1555, 1981, 2467],
+      '83': [3190, 4823, 7806, 11188],
+      '84': [1667, 2475, 3272, 4684],
+      '85': [1475, 2193, 3162, 4688],
+      '86': [815, 1243, 1690, 2192],
+      '87': [750, 1094, 1472, 1819],
+      '88': [677, 1180, 1700, 2519],
+      '89': [923, 1495, 2269, 3722],
+      '90': [682, 1291, 1667, 2093],
+      '91': [2150, 2888, 3577, 4465],
+      '92': [4266, 5812, 7078, 8844],
+      '93': [2900, 3979, 5385, 7846],
+      '94': [3556, 4562, 5625, 7136],
+      '95': [2455, 3152, 3770, 4588]
+    }
+  },
+  
+  // Niveau actuel par défaut
+  scaleLevel: 'national',
+  
+  // Breaks actifs (initialisés avec le national)
+  breaks: [1932, 3659, 7207, 28478],
+  
+  colors: ['#D2E3F9', '#9FC2F4', '#5C9CED', '#2F6BC7', '#0F3B66'],
+  nullColor: '#d3d3d3',
+  opacity: 0.8,
+  clickable: true,
+  popup: {
+    fields: ['nom_iris', 'prix_median', 'prix_moyen'],
+    fieldLabels: {
+      'nom_iris': 'Quartier',
+      'prix_median': 'Prix médian au m²',
+      'prix_moyen': 'Prix moyen au m²'
+    }
+  },
+  labels: {
+    enabled: false,
+    field: 'prix_median',
+    textSize: 12,
+    color: '#333',
+    haloColor: 'rgba(255,255,255,0.8)',
+    haloWidth: 2,
+    labelFormat: 'currency-euro'
+  },
+  minzoom: 8,
+  maxzoom: 22
+}
     };
 
 ///// LAYER MANAGER //////
+/**
+/**
+ * GESTIONNAIRE DE LAYERS - Version 4 FINALE
+ * Remplace complètement le système zoomToIris
+ */
 window.layerManager = {
   // État des layers par outil
   state: {
     trouver: {
       activeLayers: new Set(),
-      irisLayers: new Set() // IRIS spécifiques à Trouver
+      irisData: null,              // codes IRIS affichés
+      hasSearchArea: false,        // zone de recherche active  
+      radiusMarker: null           // coordonnées du marqueur radius {lon, lat}
     },
     explorer: {
       activeLayers: new Set(),
-      irisLayers: new Set() // IRIS spécifiques à Explorer
+      irisData: null,              // codes IRIS affichés  
+      hasSearchArea: false,        // zone de recherche active
+      addressMarker: null          // coordonnées du marqueur d'adresse {lon, lat}
     }
   },
   
   // Outil actuel
-  currentTool: 'explorer',
+  currentTool: 'trouver',  // Par défaut sur Trouver
   
   // Layer choroplèthe actif (un seul à la fois)
   activeChloropleth: null,
@@ -573,7 +771,436 @@ window.layerManager = {
   },
 
   /**
-   * Ajoute un layer
+   * Bascule entre les outils - FONCTION PRINCIPALE
+   */
+  switchTool(newTool) {
+    if (newTool === this.currentTool) {
+      console.log(`ℹ️ Déjà sur l'outil ${newTool}`);
+      return;
+    }
+
+    console.log(`🔄 Basculement ${this.currentTool} → ${newTool}`);
+
+    // 1. SAUVEGARDER l'état actuel
+    this.saveCurrentState();
+
+    // 2. MASQUER tout de l'outil actuel
+    this.hideAllCurrentLayers();
+
+    // 3. CHANGER l'outil
+    const oldTool = this.currentTool;
+    this.currentTool = newTool;
+
+    // 4. RESTAURER l'état du nouvel outil
+    this.restoreToolState();
+
+    // 5. Notifier Bubble
+    this.notifyBubble('tool_switched', { oldTool, newTool });
+    
+    console.log(`✅ Basculement terminé vers ${newTool}`);
+  },
+
+  /**
+   * SAUVEGARDE l'état complet de l'outil actuel
+   */
+  saveCurrentState() {
+    const currentState = this.state[this.currentTool];
+    
+    console.log(`💾 Sauvegarde état ${this.currentTool}:`);
+    
+    // Sauvegarder IRIS actuels (en regardant quels layers IRIS sont actifs)
+    if (currentState.irisData && currentState.irisData.length > 0) {
+      console.log(`  📍 IRIS sauvegardés:`, currentState.irisData);
+    } else {
+      currentState.irisData = null;
+      console.log(`  📍 Aucun IRIS à sauvegarder`);
+    }
+    
+    // Sauvegarder zone de recherche - CORRECTION ICI
+    const hasCollectivites = window.collectivitesData?.features?.length > 0;
+    const hasRadius = window.radiusData?.features?.length > 0;
+    const hasVisibleCollectivites = hasCollectivites && window.map.getLayer('collectivites-fill') && 
+                                   window.map.getLayoutProperty('collectivites-fill', 'visibility') === 'visible';
+    const hasVisibleRadius = hasRadius && window.map.getLayer('radius-fill') && 
+                            window.map.getLayoutProperty('radius-fill', 'visibility') === 'visible';
+    
+    currentState.hasSearchArea = hasVisibleCollectivites || hasVisibleRadius;
+    console.log(`  🔍 Zone de recherche visible:`, currentState.hasSearchArea);
+    console.log(`    - Collectivités:`, hasVisibleCollectivites);
+    console.log(`    - Rayon:`, hasVisibleRadius);
+    
+    // Sauvegarder marqueur d'adresse (Explorer uniquement)
+    if (this.currentTool === 'explorer' && window.addressMarker) {
+      const lngLat = window.addressMarker.getLngLat();
+      currentState.addressMarker = { lon: lngLat.lng, lat: lngLat.lat };
+      console.log(`  📍 Marqueur adresse sauvegardé:`, currentState.addressMarker);
+    }
+    
+    // Sauvegarder marqueur radius (Trouver uniquement)
+    if (this.currentTool === 'trouver' && window.radiusMarker) {
+      const lngLat = window.radiusMarker.getLngLat();
+      currentState.radiusMarker = { lon: lngLat.lng, lat: lngLat.lat };
+      console.log(`  📍 Marqueur radius sauvegardé:`, currentState.radiusMarker);
+    }
+    
+    // Les activeLayers sont déjà à jour via addMapLayer/removeMapLayer
+    console.log(`  🎨 Layers actifs:`, Array.from(currentState.activeLayers));
+  },
+
+  /**
+   * MASQUE tout de l'outil actuel
+   */
+  hideAllCurrentLayers() {
+    console.log(`🙈 Masquage layers ${this.currentTool}`);
+    
+    // 1. Masquer choroplèthes
+    if (this.activeChloropleth) {
+      window.hideChoropleth();
+      console.log(`  🎨 Choroplèthe masqué: ${this.activeChloropleth}`);
+    }
+    
+    // 2. Masquer layers de points
+    this.state[this.currentTool].activeLayers.forEach(layerId => {
+      const config = window.layerConfigs[layerId];
+      if (config?.isPoints) {
+        const pointLayerId = `${layerId}-points`;
+        if (window.map.getLayer(pointLayerId)) {
+          window.map.setLayoutProperty(pointLayerId, 'visibility', 'none');
+          console.log(`  📍 Points masqués: ${layerId}`);
+        }
+      }
+    });
+    
+    // 3. Masquer TOUS les IRIS (ancien et nouveau système)
+    this.hideAllIrisLayers();
+    console.log(`  🏘️ TOUS les IRIS masqués`);
+    
+    // 4. Masquer zone de recherche
+    this.hideSearchArea();
+    console.log(`  🔍 Zone de recherche masquée`);
+    
+    // 5. Masquer marqueurs selon l'outil
+    if (this.currentTool === 'explorer' && window.addressMarker) {
+      window.addressMarker.remove();
+      window.addressMarker = null;
+      console.log(`  📍 Marqueur adresse Explorer masqué`);
+    }
+    
+    if (this.currentTool === 'trouver' && window.radiusMarker) {
+      window.radiusMarker.remove();
+      window.radiusMarker = null;
+      console.log(`  📍 Marqueur radius Trouver masqué`);
+    }
+    
+    // 6. Fermer popups
+    this.closeAllPopups();
+  },
+
+  /**
+   * RESTAURE l'état du nouvel outil
+   */
+  restoreToolState() {
+    const newState = this.state[this.currentTool];
+    
+    console.log(`🔄 Restauration ${this.currentTool}:`);
+    console.log(`  État à restaurer:`, newState);
+    
+    // 1. Restaurer zone de recherche d'abord
+    if (newState.hasSearchArea) {
+      this.restoreSearchArea();
+      console.log(`  🔍 Zone de recherche restaurée`);
+    }
+    
+    // 2. Restaurer IRIS
+    if (newState.irisData && newState.irisData.length > 0) {
+      console.log(`  📍 Restauration IRIS:`, newState.irisData);
+      this.displayIrisForTool(this.currentTool, newState.irisData, false); // false = pas de zoom
+    }
+    
+    // 3. Restaurer choroplèthe (Explorer uniquement)
+    if (this.currentTool === 'explorer') {
+      const choroplethLayer = Array.from(newState.activeLayers)
+        .find(layerId => window.layerConfigs[layerId]?.isChoropleth);
+      
+      if (choroplethLayer) {
+        window.showChoroplethLayer(choroplethLayer);
+        this.activeChloropleth = choroplethLayer;
+        console.log(`  🎨 Choroplèthe restauré: ${choroplethLayer}`);
+      }
+      
+      // 4. Restaurer layers de points (Explorer uniquement)
+      newState.activeLayers.forEach(layerId => {
+        const config = window.layerConfigs[layerId];
+        if (config?.isPoints) {
+          const pointLayerId = `${layerId}-points`;
+          if (window.map.getLayer(pointLayerId)) {
+            window.map.setLayoutProperty(pointLayerId, 'visibility', 'visible');
+            console.log(`  📍 Points restaurés: ${layerId}`);
+          } else {
+            // Re-créer le layer s'il n'existe plus
+            this.addPointsLayer(layerId, config);
+            console.log(`  📍 Points re-créés: ${layerId}`);
+          }
+        }
+      });
+    }
+    
+    // 5. Restaurer marqueurs selon l'outil
+    if (this.currentTool === 'explorer' && newState.addressMarker && !window.addressMarker) {
+      window.addressMarker = new mapboxgl.Marker({ color: '#ff0066' })
+        .setLngLat([newState.addressMarker.lon, newState.addressMarker.lat])
+        .addTo(window.map);
+      console.log(`  📍 Marqueur adresse Explorer restauré`);
+    }
+    
+    if (this.currentTool === 'trouver' && newState.radiusMarker && !window.radiusMarker) {
+      window.radiusMarker = new mapboxgl.Marker({ color: '#8A2BE2' })
+        .setLngLat([newState.radiusMarker.lon, newState.radiusMarker.lat])
+        .addTo(window.map);
+      console.log(`  📍 Marqueur radius Trouver restauré`);
+    }
+    
+    console.log(`✅ Restauration ${this.currentTool} terminée`);
+  },
+
+  /**
+   * Affiche des IRIS pour un outil spécifique
+   * Cette fonction remplace complètement zoomToIris/zoomToIrisQueued
+   */
+  displayIrisForTool(tool, codes, withZoom = true) {
+    if (!codes || codes.length === 0) return;
+    
+    console.log(`🏘️ Affichage IRIS pour ${tool}:`, codes, withZoom ? '(avec zoom)' : '(sans zoom)');
+    
+    // Attendre que la carte soit prête
+    if (!window.map || !window.map.loaded()) {
+      console.log('⏳ Carte pas prête, attente...');
+      setTimeout(() => this.displayIrisForTool(tool, codes, withZoom), 200);
+      return;
+    }
+    
+    // Noms de layers spécifiques à l'outil
+    const fillLayerId = `iris-${tool}-fill`;
+    const outlineLayerId = `iris-${tool}-outline`;
+    
+    // S'assurer que la source IRIS existe
+    if (!window.map.getSource('iris')) {
+      window.map.addSource('iris', window.layerConfigs['iris'].source);
+      console.log('➕ Source IRIS ajoutée');
+    }
+
+    // Nettoyer TOUS les layers IRIS existants (pour être sûr)
+    this.hideAllIrisLayers();
+
+    // Réinitialiser tous les feature-states pour éviter les couleurs parasites
+    this.resetAllIrisFeatureStates();
+
+    // Créer les nouveaux layers
+    try {
+      window.map.addLayer({
+        id: fillLayerId,
+        type: 'fill',
+        source: 'iris',
+        'source-layer': window.layerConfigs['iris'].sourceLayer,
+        paint: {
+          'fill-color': '#8A2BE2',  // Couleur fixe - pas de feature-state
+          'fill-opacity': 0.25      // Opacity standard
+        },
+        filter: ['match', ['get', 'CODE_IRIS'], codes, true, false]
+      });
+
+      window.map.addLayer({
+        id: outlineLayerId,
+        type: 'line',
+        source: 'iris',
+        'source-layer': window.layerConfigs['iris'].sourceLayer,
+        paint: {
+          'line-color': '#8A2BE2',  // Même couleur que le fill
+          'line-width': 2,
+          'line-opacity': 1
+        },
+        filter: ['match', ['get', 'CODE_IRIS'], codes, true, false]
+      });
+
+      console.log(`✅ IRIS ${tool} créés: ${fillLayerId}, ${outlineLayerId}`);
+
+      // Ajouter les interactions de clic
+      this.addIrisClickListeners(fillLayerId);
+      
+      // S'assurer que les layers de sélection existent
+      this.ensureIrisSelectedLayers();
+      
+      // Mettre à jour window.lastIrisList pour compatibilité
+      window.lastIrisList = codes.slice();
+
+      // ZOOM DÉSACTIVÉ pour éviter les problèmes de redimensionnement Bubble
+      // Les IRIS s'affichent à la position actuelle de la carte
+      
+    } catch (error) {
+      console.error(`❌ Erreur affichage IRIS ${tool}:`, error);
+    }
+  },
+
+  /**
+   * Calcule et applique le fitBounds sur les IRIS
+   */
+  fitBoundsToIris(codes) {
+    try {
+      const features = window.map.querySourceFeatures('iris', {
+        sourceLayer: window.layerConfigs['iris'].sourceLayer,
+        filter: ['match', ['get', 'CODE_IRIS'], codes, true, false]
+      });
+
+      if (features.length > 0) {
+        const fc = {
+          type: 'FeatureCollection',
+          features: features
+        };
+        
+        const bbox = turf.bbox(fc);
+        window.map.fitBounds(bbox, { 
+          padding: 60, 
+          duration: 600,
+          maxZoom: 15
+        });
+        
+        console.log('🎯 Zoom appliqué sur les IRIS');
+      }
+    } catch (error) {
+      console.error('❌ Erreur zoom IRIS:', error);
+    }
+  },
+
+  /**
+   * Ajoute les listeners de clic sur les IRIS
+   */
+  addIrisClickListeners(layerId) {
+    // Retirer les anciens listeners pour éviter les doublons
+    window.map.off('click', layerId);
+    window.map.off('mouseenter', layerId);
+    window.map.off('mouseleave', layerId);
+    
+    window.map.on('click', layerId, e => {
+      const codeIris = e.features[0].properties['CODE_IRIS'];
+      console.log('IRIS cliqué:', codeIris);
+      window.selectGeometry('iris', codeIris);
+    });
+    
+    window.map.on('mouseenter', layerId, () => {
+      window.map.getCanvas().style.cursor = 'pointer';
+    });
+    
+    window.map.on('mouseleave', layerId, () => {
+      window.map.getCanvas().style.cursor = '';
+    });
+    
+    console.log(`🖱️ Listeners ajoutés pour ${layerId}`);
+  },
+
+  /**
+   * Réinitialise tous les feature-states IRIS (maintenant optionnel)
+   */
+  resetAllIrisFeatureStates() {
+    // Cette fonction est maintenant moins critique car on n'utilise plus feature-state
+    // pour les couleurs, mais on la garde pour la sélection
+    if (!window.map || !window.map.getSource('iris')) return;
+    
+    try {
+      const features = window.map.querySourceFeatures('iris', {
+        sourceLayer: window.layerConfigs['iris'].sourceLayer
+      });
+      
+      features.forEach(feature => {
+        if (feature.id !== undefined) {
+          window.map.setFeatureState(
+            { source: 'iris', sourceLayer: window.layerConfigs['iris'].sourceLayer, id: feature.id },
+            { clicked: false }
+          );
+        }
+      });
+      
+      console.log(`🎨 Feature-states réinitialisés pour ${features.length} IRIS`);
+    } catch (error) {
+      console.log('⚠️ Réinitialisation feature-states ignorée:', error.message);
+    }
+  },
+  ensureIrisSelectedLayers() {
+    if (!window.map || !window.map.getSource('iris')) return;
+
+    if (!window.map.getLayer('iris-selected-fill')) {
+      window.map.addLayer({
+        id: 'iris-selected-fill',
+        type: 'fill',
+        source: 'iris',
+        'source-layer': window.layerConfigs.iris.sourceLayer,
+        paint: {
+          'fill-color': 'rgba(255,215,0,0.35)',
+          'fill-opacity': 0.8
+        },
+        filter: ['==', ['get', 'CODE_IRIS'], '']
+      });
+    }
+
+    if (!window.map.getLayer('iris-selected-outline')) {
+      window.map.addLayer({
+        id: 'iris-selected-outline',
+        type: 'line',
+        source: 'iris',
+        'source-layer': window.layerConfigs.iris.sourceLayer,
+        paint: { 'line-color': '#FFD700', 'line-width': 3 },
+        filter: ['==', ['get', 'CODE_IRIS'], '']
+      });
+    }
+  },
+
+  /**
+   * Gestion des IRIS avec sauvegarde d'état (API publique)
+   * REMPLACE zoomToIrisQueued
+   */
+  showIrisForTool(codes) {
+    console.log(`📍 showIrisForTool(${this.currentTool}):`, codes);
+    
+    // Sauvegarder dans l'état
+    this.state[this.currentTool].irisData = codes ? codes.slice() : null;
+    
+    if (codes && codes.length > 0) {
+      // Afficher SANS zoom automatique
+      this.displayIrisForTool(this.currentTool, codes, false);
+    } else {
+      // Masquer tous les IRIS
+      this.hideAllIrisLayers();
+    }
+  },
+
+  /**
+   * Masque TOUS les layers IRIS (système unifié)
+   */
+  hideAllIrisLayers() {
+    // Tous les layers IRIS possibles
+    const allIrisLayers = [
+      // Ancien système
+      'iris-temp', 'iris-temp-outline', 'iris-fill', 'iris-outline', 'iris-labels',
+      // Nouveau système par outil
+      'iris-trouver-fill', 'iris-trouver-outline',
+      'iris-explorer-fill', 'iris-explorer-outline',
+      // Layers de sélection
+      'iris-selected-fill', 'iris-selected-outline'
+    ];
+    
+    allIrisLayers.forEach(layerId => {
+      if (window.map.getLayer(layerId)) {
+        try {
+          window.map.removeLayer(layerId);
+          console.log(`🗑️ Layer IRIS supprimé: ${layerId}`);
+        } catch (error) {
+          // Ignorer les erreurs de suppression
+        }
+      }
+    });
+  },
+
+  /**
+   * Ajoute un layer (API Bubble)
    */
   addLayer(layerId) {
     const config = window.layerConfigs[layerId];
@@ -582,22 +1209,23 @@ window.layerManager = {
       return false;
     }
 
+    console.log(`➕ Ajout layer ${layerId} pour ${this.currentTool}`);
+
     // Vérifier les règles d'exclusivité pour les choroplèthes
     if (config.isChoropleth) {
-      if (this.activeChloropleth) {
+      if (this.activeChloropleth && this.activeChloropleth !== layerId) {
         this.removeLayer(this.activeChloropleth);
       }
       this.activeChloropleth = layerId;
-    }
-
-    // Ajouter le layer selon son type
-    if (config.isPoints) {
+      
+      // Utiliser la fonction existante pour les choroplèthes
+      window.showChoroplethLayer(layerId);
+    } else if (config.isPoints) {
+      // Ajouter le layer de points
       this.addPointsLayer(layerId, config);
-    } else if (config.isChoropleth) {
-      this.addChoroplethLayer(layerId, config);
-    } else if (layerId === 'iris') {
-      // Gérer spécialement les IRIS
-      this.addIrisLayer(layerId, config);
+    } else {
+      console.warn(`⚠️ Layer type not fully supported: ${layerId}`);
+      return false;
     }
 
     // Mettre à jour l'état
@@ -610,10 +1238,49 @@ window.layerManager = {
   },
 
   /**
+   * Supprime un layer (API Bubble)
+   */
+  removeLayer(layerId) {
+    const config = window.layerConfigs[layerId];
+    if (!config) return false;
+
+    console.log(`➖ Suppression layer ${layerId} pour ${this.currentTool}`);
+
+    // Supprimer selon le type
+    if (config.isPoints) {
+      const pointLayerId = `${layerId}-points`;
+      if (window.map.getLayer(pointLayerId)) {
+        window.map.setLayoutProperty(pointLayerId, 'visibility', 'none');
+      }
+    } else if (config.isChoropleth) {
+      window.hideChoropleth();
+      if (this.activeChloropleth === layerId) {
+        this.activeChloropleth = null;
+      }
+    }
+
+    // Mettre à jour l'état
+    this.state[this.currentTool].activeLayers.delete(layerId);
+    
+    // Fermer les popups associés
+    this.closeAllPopups();
+    
+    // Notifier Bubble
+    this.notifyBubble('layer_removed', { layerId, tool: this.currentTool });
+    
+    return true;
+  },
+
+  /**
    * Ajoute un layer de points
    */
   addPointsLayer(layerId, config) {
     const pointLayerId = `${layerId}-points`;
+    
+    // S'assurer que la source existe
+    if (!window.map.getSource(layerId)) {
+      window.map.addSource(layerId, config.source);
+    }
     
     if (!window.map.getLayer(pointLayerId)) {
       window.map.addLayer({
@@ -642,150 +1309,71 @@ window.layerManager = {
   },
 
   /**
-   * Ajoute un layer choroplèthe (utilise le code existant)
+   * Masque la zone de recherche
    */
-  addChoroplethLayer(layerId, config) {
-    // Utiliser la fonction existante
-    window.showChoroplethLayer(layerId);
+  hideSearchArea() {
+    // Masquer collectivités
+    ['collectivites-fill', 'collectivites-outline'].forEach(layerId => {
+      if (window.map.getLayer(layerId)) {
+        window.map.setLayoutProperty(layerId, 'visibility', 'none');
+      }
+    });
+    
+    // Masquer rayon
+    ['radius-fill', 'radius-outline'].forEach(layerId => {
+      if (window.map.getLayer(layerId)) {
+        window.map.setLayoutProperty(layerId, 'visibility', 'none');
+      }
+    });
+  },
+
+  /**
+   * Restaure la zone de recherche
+   */
+  restoreSearchArea() {
+    // Restaurer collectivités si données disponibles
+    if (window.collectivitesData?.features?.length > 0) {
+      ['collectivites-fill', 'collectivites-outline'].forEach(layerId => {
+        if (window.map.getLayer(layerId)) {
+          window.map.setLayoutProperty(layerId, 'visibility', 'visible');
+        }
+      });
+    }
+    
+    // Restaurer rayon si données disponibles  
+    if (window.radiusData?.features?.length > 0) {
+      ['radius-fill', 'radius-outline'].forEach(layerId => {
+        if (window.map.getLayer(layerId)) {
+          window.map.setLayoutProperty(layerId, 'visibility', 'visible');
+        }
+      });
+    }
   },
 
   /**
    * Gère le clic sur un point
    */
-handlePointClick(e, layerId, config) {
-  if (!config.popup || !config.popup.fields) return;
+  handlePointClick(e, layerId, config) {
+    if (!config.popup || !config.popup.fields) return;
 
-  const coordinates = e.features[0].geometry.coordinates.slice();
-  const properties = e.features[0].properties;
+    const coordinates = e.features[0].geometry.coordinates.slice();
+    const properties = e.features[0].properties;
 
-  let popupContent = '<div class="popup-content">';
-  config.popup.fields.forEach(field => {
-    if (properties[field]) {
-      // Utiliser le label personnalisé s'il existe
-      const label = config.popup.fieldLabels?.[field] || this.formatFieldName(field);
-      popupContent += `<div><strong>${label}:</strong> ${properties[field]}</div>`;
-    }
-  });
-  popupContent += '</div>';
-
-  const popup = new mapboxgl.Popup()
-    .setLngLat(coordinates)
-    .setHTML(popupContent)
-    .addTo(window.map);
-
-  this.activePopups.push(popup);
-},
-
-  /**
-   * Supprime un layer
-   */
-  removeLayer(layerId) {
-    const config = window.layerConfigs[layerId];
-    if (!config) return false;
-
-    // Supprimer selon le type
-    if (config.isPoints) {
-      const pointLayerId = `${layerId}-points`;
-      if (window.map.getLayer(pointLayerId)) {
-        window.map.setLayoutProperty(pointLayerId, 'visibility', 'none');
-      }
-    } else if (config.isChoropleth) {
-      window.hideChoropleth();
-      if (this.activeChloropleth === layerId) {
-        this.activeChloropleth = null;
-      }
-    } else if (layerId === 'iris') {
-      // Gérer la suppression des IRIS
-      this.hideIrisLayers();
-    }
-
-    // Mettre à jour l'état
-    this.state[this.currentTool].activeLayers.delete(layerId);
-    
-    // Fermer les popups associés
-    this.closeAllPopups();
-    
-    // Notifier Bubble
-    this.notifyBubble('layer_removed', { layerId, tool: this.currentTool });
-    
-    return true;
-  },
-
-  /**
-   * Bascule entre les outils
-   */
-  switchTool(newTool) {
-    if (newTool === this.currentTool) return;
-
-    console.log(`🔄 Switching from ${this.currentTool} to ${newTool}`);
-
-    // Masquer tous les layers de l'outil actuel
-    this.hideCurrentToolLayers();
-
-    // Changer l'outil
-    this.currentTool = newTool;
-
-    // Restaurer les layers du nouvel outil
-    this.restoreToolLayers();
-
-    // Notifier Bubble
-    this.notifyBubble('tool_switched', { newTool });
-  },
-
-  /**
-   * Masque les layers de l'outil actuel
-   */
-  hideCurrentToolLayers() {
-    this.state[this.currentTool].activeLayers.forEach(layerId => {
-      const config = window.layerConfigs[layerId];
-      if (!config) return;
-
-      if (config.isPoints) {
-        const pointLayerId = `${layerId}-points`;
-        if (window.map.getLayer(pointLayerId)) {
-          window.map.setLayoutProperty(pointLayerId, 'visibility', 'none');
-        }
-      } else if (config.isChoropleth) {
-        window.hideChoropleth();
+    let popupContent = '<div class="popup-content">';
+    config.popup.fields.forEach(field => {
+      if (properties[field]) {
+        const label = config.popup.fieldLabels?.[field] || this.formatFieldName(field);
+        popupContent += `<div><strong>${label}:</strong> ${properties[field]}</div>`;
       }
     });
+    popupContent += '</div>';
 
-    // Masquer aussi les IRIS spécifiques à l'outil
-    this.hideIrisLayers();
-    this.closeAllPopups();
-  },
+    const popup = new mapboxgl.Popup()
+      .setLngLat(coordinates)
+      .setHTML(popupContent)
+      .addTo(window.map);
 
-  /**
-   * Restaure les layers de l'outil
-   */
-  restoreToolLayers() {
-    // Restaurer le choroplèthe s'il y en avait un
-    const choroplethLayer = Array.from(this.state[this.currentTool].activeLayers)
-      .find(layerId => window.layerConfigs[layerId]?.isChoropleth);
-    
-    if (choroplethLayer) {
-      window.showChoroplethLayer(choroplethLayer);
-      this.activeChloropleth = choroplethLayer;
-    }
-
-    // Restaurer les autres layers
-    this.state[this.currentTool].activeLayers.forEach(layerId => {
-      const config = window.layerConfigs[layerId];
-      if (!config || config.isChoropleth) return; // Choroplèthe déjà traité
-
-      if (config.isPoints) {
-        const pointLayerId = `${layerId}-points`;
-        if (window.map.getLayer(pointLayerId)) {
-          window.map.setLayoutProperty(pointLayerId, 'visibility', 'visible');
-        }
-      }
-    });
-
-    // Restaurer les IRIS si nécessaire
-    if (this.currentTool === 'explorer' && window.lastIrisExplorer) {
-      // Restaurer les IRIS d'Explorer si disponibles
-      this.showIrisExplorer(window.lastIrisExplorer);
-    }
+    this.activePopups.push(popup);
   },
 
   /**
@@ -801,27 +1389,12 @@ handlePointClick(e, layerId, config) {
   clearAllLayers() {
     const layers = Array.from(this.state[this.currentTool].activeLayers);
     layers.forEach(layerId => this.removeLayer(layerId));
-    this.closeAllPopups();
-  },
-
-  /**
-   * Gestion spécifique des IRIS pour Explorer
-   */
-  showIrisExplorer(irisData) {
-    // Sauvegarder pour la restauration
-    window.lastIrisExplorer = irisData;
     
-    // Utiliser le système existant ou créer un layer spécifique
-    // À adapter selon votre implémentation actuelle
-  },
-
-  hideIrisLayers() {
-    // Masquer les layers IRIS
-    ['iris-temp', 'iris-temp-outline', 'iris-fill', 'iris-outline'].forEach(layerId => {
-      if (window.map.getLayer(layerId)) {
-        window.map.setLayoutProperty(layerId, 'visibility', 'none');
-      }
-    });
+    // Nettoyer aussi les IRIS
+    this.state[this.currentTool].irisData = null;
+    this.hideAllIrisLayers();
+    
+    this.closeAllPopups();
   },
 
   /**
@@ -849,16 +1422,142 @@ handlePointClick(e, layerId, config) {
       'nom': 'Nom',
       'adresse': 'Adresse',
       'prix': 'Prix',
-      'surface': 'Surface',
-      'prix_m2': 'Prix/m²',
-      'type_bien': 'Type de bien',
-      'date_vente': 'Date de vente',
-      'certification': 'Certification'
+      'surface': 'Surface'
     };
     return mapping[field] || field;
   }
 };
-///// Fin du layer manager //////
+
+// ===== API POUR BUBBLE (INCHANGÉE) =====
+
+window.addMapLayer = function(layerId) {
+  if (!window.layerManager) {
+    console.error('LayerManager not initialized');
+    return false;
+  }
+  return window.layerManager.addLayer(layerId);
+};
+
+window.removeMapLayer = function(layerId) {
+  if (!window.layerManager) {
+    console.error('LayerManager not initialized');
+    return false;
+  }
+  return window.layerManager.removeLayer(layerId);
+};
+
+window.switchMapTool = function(tool) {
+  if (!window.layerManager) {
+    console.error('LayerManager not initialized');
+    return false;
+  }
+  return window.layerManager.switchTool(tool);
+};
+
+window.getActiveMapLayers = function() {
+  if (!window.layerManager) {
+    console.error('LayerManager not initialized');
+    return [];
+  }
+  return window.layerManager.getActiveLayers();
+};
+
+window.clearAllMapLayers = function() {
+  if (!window.layerManager) {
+    console.error('LayerManager not initialized');
+    return false;
+  }
+  return window.layerManager.clearAllLayers();
+};
+
+// ===== FONCTIONS SPÉCIALES POUR LA ZONE DE RECHERCHE =====
+
+/**
+ * Marque qu'une zone de recherche est active pour l'outil actuel
+ * À appeler depuis Bubble après définition de zone
+ */
+window.markSearchAreaActive = function() {
+  if (!window.layerManager) return;
+  window.layerManager.state[window.layerManager.currentTool].hasSearchArea = true;
+  console.log(`🔍 Zone de recherche marquée active pour ${window.layerManager.currentTool}`);
+};
+
+/**
+ * Marque qu'un marqueur d'adresse est actif (Explorer uniquement)
+ * À appeler depuis Bubble après création du marqueur
+ */
+window.markAddressMarkerActive = function(lon, lat) {
+  if (!window.layerManager || window.layerManager.currentTool !== 'explorer') return;
+  window.layerManager.state.explorer.addressMarker = { lon, lat };
+  console.log(`📍 Marqueur adresse Explorer sauvegardé:`, { lon, lat });
+};
+
+/**
+ * Marque qu'un marqueur radius est actif (Trouver uniquement)  
+ * À appeler depuis Bubble après création du marqueur
+ */
+window.markRadiusMarkerActive = function(lon, lat) {
+  if (!window.layerManager || window.layerManager.currentTool !== 'trouver') return;
+  window.layerManager.state.trouver.radiusMarker = { lon, lat };
+  console.log(`📍 Marqueur radius Trouver sauvegardé:`, { lon, lat });
+};
+
+/**
+ * Réinitialise la recherche - REMPLACE window.resetRecherche()
+ */
+window.resetSearchArea = function() {
+  console.log("🔄 Réinitialisation zone de recherche");
+  
+  if (!window.layerManager) {
+    console.error('LayerManager not initialized');
+    return;
+  }
+
+  // Attendre que la carte soit prête
+  if (!window.map || !window.map.isStyleLoaded()) {
+    setTimeout(window.resetSearchArea, 200);
+    return;
+  }
+
+  // 1. Masquer SEULEMENT les IRIS (pas la zone de recherche)
+  window.layerManager.hideAllIrisLayers();
+  
+  // 2. Réinitialiser les données IRIS de l'outil actuel
+  window.layerManager.state[window.layerManager.currentTool].irisData = null;
+  
+  // 3. S'assurer que la zone de recherche reste visible
+  // Restaurer collectivités si données disponibles
+  if (window.collectivitesData?.features?.length > 0) {
+    ['collectivites-fill', 'collectivites-outline'].forEach(layerId => {
+      if (window.map.getLayer(layerId)) {
+        window.map.setLayoutProperty(layerId, 'visibility', 'visible');
+        console.log(`✅ Zone collectivités maintenue visible: ${layerId}`);
+      }
+    });
+  }
+  
+  // Restaurer rayon si données disponibles  
+  if (window.radiusData?.features?.length > 0) {
+    ['radius-fill', 'radius-outline'].forEach(layerId => {
+      if (window.map.getLayer(layerId)) {
+        window.map.setLayoutProperty(layerId, 'visibility', 'visible');
+        console.log(`✅ Zone rayon maintenue visible: ${layerId}`);
+      }
+    });
+  }
+  
+  console.log("✅ IRIS masqués, zone de recherche préservée");
+};
+
+window.showToolIris = function(codes) {
+  if (!window.layerManager) {
+    console.error('LayerManager not initialized');
+    return false;
+  }
+  return window.layerManager.showIrisForTool(codes);
+};
+
+///// FIN DU LAYER MANAGER ////////
 
 ///// ZONE DE RECHERCHE //////
 /* ---------- fonctions globales appelées par Bubble ---------- */
@@ -1180,6 +1879,9 @@ function initExternalSearch_Trouver() {
       window.radiusMarker.setLngLat([lon, lat]);
     }
 
+    // NOUVEAU - Sauvegarder le marqueur dans le layerManager
+    markRadiusMarkerActive(lon, lat);
+
     // 3. Dessiner / mettre à jour le cercle
     drawRadius();
 
@@ -1273,6 +1975,9 @@ sb.addEventListener('retrieve', e => {
   } else {
     window.addressMarker.setLngLat([lon, lat]);
   }
+
+    /* NOUVEAU - Sauvegarder le marqueur dans le layerManager */
+  markAddressMarkerActive(lon, lat);
 
   /* C) prévenir Bubble (inchangé) */
     if (typeof bubble_fn_pointSBexplorer === 'function') {
@@ -1924,186 +2629,6 @@ window.toggleLabels = function(show) {
   window.map.triggerRepaint();
 };
 
-/* --------  Zoom / fitBounds sur une liste de codes IRIS (Version avec ajout de couche) -------- */
-window.zoomToIris = function(codes, focusCode = null) {
-  console.log("➡️ zoomToIris called with:", codes);
-
-  if (!codes || !Array.isArray(codes) || codes.length === 0) {
-    console.warn("🛑 No valid codes provided");
-    return;
-  }
-
-  if (!window.map) {
-    console.warn("🛑 Map not initialized, retrying in 300ms...");
-    setTimeout(() => window.zoomToIris(codes), 300);
-    return;
-  }
-
-// Dans le cadre de la sélection des IRIS
-window.lastIrisList = codes.slice();   // copie défensive
-
-  if (!window.map.loaded()) {
-    console.warn("🛑 Map not loaded, waiting for 'load' event...");
-    window.map.once('load', () => {
-      console.log("✅ Map loaded, retrying zoomToIris");
-      window.zoomToIris(codes);
-    });
-    return;
-  }
-
-  // 0️⃣ Cacher immédiatement les couches collectivités et radius
-  ['collectivites-fill', 'collectivites-outline', 'radius-fill', 'radius-outline'].forEach(id => {
-    if (window.map.getLayer(id)) {
-      window.map.setLayoutProperty(id, 'visibility', 'none');
-      console.log(`✅ Hid layer ${id}`);
-    }
-  });
-
-  // 1️⃣ Nettoyer les couches temporaires IRIS précédentes
-  ['iris-temp', 'iris-temp-outline'].forEach(layerId => {
-    if (window.map.getLayer(layerId)) {
-      window.map.removeLayer(layerId);
-      console.log(`✅ Removed previous ${layerId} layer`);
-    }
-  });
-
-  if (!window.map.getSource('iris')) {
-    console.log("➕ Adding IRIS source...");
-    try {
-      window.map.addSource('iris', layerConfigs['iris'].source);
-    } catch (error) {
-      console.error("🛑 Error adding IRIS source:", error);
-      return;
-    }
-  }
-
-  let targetLayerId = 'iris-fill';
-  if (!window.map.getLayer('iris-fill')) {
-    console.log("➕ Adding temporary IRIS layers 'iris-temp' and 'iris-temp-outline'...");
-    try {
-      // Ajouter la couche de remplissage
-      window.map.addLayer({
-        id: 'iris-temp',
-        type: 'fill',
-        source: 'iris',
-        'source-layer': layerConfigs['iris'].sourceLayer,
-        paint: {
-          'fill-color': '#8A2BE2',
-          'fill-opacity': 0.25
-        },
-        filter: ['match', ['get', 'CODE_IRIS'], codes, true, false]
-      });
-      registerIrisClickListeners();
-
-/* ⬇️  ajoute ceci (s'assurer que les couches de sélection s'affichent)*/
-ensureIrisSelectedLayers();
-/* ⬆️ */
-
-      // Ajouter une couche de bordure avec line-width: 2
-      window.map.addLayer({
-        id: 'iris-temp-outline',
-        type: 'line',
-        source: 'iris',
-        'source-layer': layerConfigs['iris'].sourceLayer,
-        paint: {
-          'line-color': '#8A2BE2',
-          'line-width': 2,
-          'line-opacity': 1
-        },
-        filter: ['match', ['get', 'CODE_IRIS'], codes, true, false]
-      });
-
-      targetLayerId = 'iris-temp';
-    } catch (error) {
-      console.error("🛑 Error adding temporary IRIS layers:", error);
-      return;
-    }
-  } else {
-    console.log("🔍 Using existing IRIS layers...");
-    ['iris-fill', 'iris-outline', 'iris-labels'].forEach(layerId => {
-      if (window.map.getLayer(layerId)) {
-        window.map.setLayoutProperty(layerId, 'visibility', 'visible');
-        if (layerId === 'iris-outline') {
-          window.map.setPaintProperty(layerId, 'line-width', 2);
-          console.log("✅ Updated iris-outline line-width to 2");
-        }
-      }
-    });
-// Pour les couches existantes, on attend qu'elles soient visibles
-window.map.once('idle', () => {
-  setTimeout(() => {
-    registerIrisClickListeners();
-    console.log('🎯 Listeners IRIS enregistrés pour couches existantes');
-  }, 100);
-});
-  }
-
-  window.map.once('idle', () => {
-    console.log("✅ Layer rendered, proceeding with filter...");
-
-    const allFeats = window.map.querySourceFeatures('iris', {
-      sourceLayer: layerConfigs['iris'].sourceLayer
-    });
-
-    if (allFeats.length === 0) {
-      console.warn("🛑 Source IRIS encore vide — probable souci de style ou de filtre. On s’arrête ici sans modifier le zoom.");
-      return;
-    }
-
-    applyFilter(allFeats);
-
-    function applyFilter(allFeatures) {
-      console.log("🎯 Applying filter with", allFeatures.length, "features");
-
-      const firstFeat = allFeatures[0];
-      const codeField = Object.keys(firstFeat.properties).find(f => f === 'CODE_IRIS' || codes.includes(String(firstFeat.properties[f])));
-      if (!codeField) {
-        console.error("❌ IRIS code field not found");
-        console.log("🔍 Available properties:", Object.keys(firstFeat.properties));
-        return;
-      }
-
-      const matchingFeatures = allFeatures.filter(f =>
-        codes.includes(String(f.properties[codeField]))
-      );
-
-      if (matchingFeatures.length === 0) {
-        console.warn("🛑 No matching features found for codes:", codes);
-        const sampleCodes = allFeatures.slice(0, 5).map(f => f.properties[codeField]);
-        console.log("🔍 Sample codes in data:", sampleCodes);
-        return;
-      }
-
-      const filter = ['match', ['get', codeField], codes, true, false];
-      window.map.setFilter(targetLayerId, filter);
-      if (window.map.getLayer('iris-outline')) {
-        window.map.setFilter('iris-outline', filter);
-        window.map.setPaintProperty('iris-outline', 'line-width', 2);
-      }
-      if (window.map.getLayer('iris-labels')) {
-        window.map.setFilter('iris-labels', filter);
-      }
-
-      // Au lieu de tout masquer (avant on faisait window.hideAllLayers), on ne masque que les autres IRIS
-      ['iris-fill', 'iris-outline', 'iris-labels'].forEach(layerId => {
-        if (window.map.getLayer(layerId)) {
-          window.map.setLayoutProperty(layerId, 'visibility', 'none');
-        }
-      });
-
-      window.map.setLayoutProperty(targetLayerId, 'visibility', 'visible');
-      if (window.map.getLayer('iris-outline')) {
-        window.map.setLayoutProperty('iris-outline', 'visibility', 'visible');
-      }
-      if (window.map.getLayer('iris-labels')) {
-        window.map.setLayoutProperty('iris-labels', 'visibility', 'visible');
-      }
-
-      console.log("✅ Filter applied successfully, keeping current map viewport");
-    }
-  });
-};
-
 window.resetRecherche = function() {
   console.log("➡️ resetRecherche called");
 
@@ -2300,15 +2825,6 @@ window.selectGeometry = function(layerId, codeIris) {
   }
 };
 
-window.zoomToIrisQueued = function(codes, focusCode = null){
-  if (!window.map || !window.map.loaded()) {
-    console.log("Map pas prête, attente pour zoomToIris...");
-    setTimeout(() => window.zoomToIrisQueued(codes, focusCode), 300);
-  } else {
-    window.zoomToIris(codes, focusCode);
-  }
-};
-
     // Fonction qui va permettre la sélection des IRIS
 function applySelectionPaint(allCodes, focusCode){
   // 1.  couleur de fond pour TOUS les IRIS affichés
@@ -2429,6 +2945,120 @@ window.configureEcoles = function(radius, secteur) {
   
   // Afficher le bon layer
   window.addMapLayer(layerId);
+};
+
+// À la fin du fichier carte-mapbox-core.html, avec les autres fonctions window.*
+
+window.setPrixMedianScale = function(scale, zoneCode = null) {
+  const config = window.layerConfigs.prix_median;
+  
+  // Déterminer les breaks appropriés
+  let breaks;
+  if (scale === 'national') {
+    breaks = config.breaksConfig.national;
+  } else if (scale === 'regional' && zoneCode) {
+    breaks = config.breaksConfig.regional[zoneCode] || config.breaksConfig.national;
+  } else if (scale === 'departmental' && zoneCode) {
+    breaks = config.breaksConfig.departmental[zoneCode] || config.breaksConfig.national;
+  } else {
+    breaks = config.breaksConfig.national; // Fallback
+  }
+  
+  // Mettre à jour la configuration
+  config.breaks = breaks;
+  config.scaleLevel = scale;
+  
+  // Reconstruire l'expression de couleur pour le layer
+  if (window.map.getLayer('prix_median-fill')) {
+    const colorExpr = [
+      'case',
+      ['==', ['get', 'prix_median'], null], config.nullColor,
+      ['step', ['get', 'prix_median'], 
+        config.colors[0], 
+        ...breaks.flatMap((brk, i) => [brk, config.colors[i + 1]])
+      ]
+    ];
+    
+    window.map.setPaintProperty('prix_median-fill', 'fill-color', colorExpr);
+  }
+};
+
+// Fonction pour filtrer les écoles par IPS
+window.filterEcolesByIPS = function(minIPS = null, maxIPS = null) {
+  if (!window.map) return;
+  
+  const layerId = 'points_ecoles-points';
+  
+  // Si le layer n'existe pas, on arrête
+  if (!window.map.getLayer(layerId)) {
+    console.warn(`Layer ${layerId} not found`);
+    return;
+  }
+  
+  // Construire le filtre
+  let filter = ['all'];
+  
+  if (minIPS !== null && minIPS !== undefined) {
+    filter.push(['>=', ['to-number', ['get', 'ips'], 0], minIPS]);
+  }
+  
+  if (maxIPS !== null && maxIPS !== undefined) {
+    filter.push(['<=', ['to-number', ['get', 'ips'], 999], maxIPS]);
+  }
+  
+  // Si aucun filtre, on affiche tout
+  if (filter.length === 1) {
+    filter = null;
+  }
+  
+  // Appliquer le filtre
+  window.map.setFilter(layerId, filter);
+  
+  console.log(`Écoles filtrées: IPS entre ${minIPS || 'min'} et ${maxIPS || 'max'}`);
+};
+
+// Fonction pour filtrer les collèges par note
+window.filterCollegesByNote = function(minNote = null, maxNote = null) {
+  if (!window.map) return;
+  
+  const layerId = 'points_colleges-points';
+  
+  // Si le layer n'existe pas, on arrête
+  if (!window.map.getLayer(layerId)) {
+    console.warn(`Layer ${layerId} not found`);
+    return;
+  }
+  
+  // Construire le filtre
+  let filter = ['all'];
+  
+  if (minNote !== null && minNote !== undefined) {
+    filter.push(['>=', ['to-number', ['get', 'note_college'], 0], minNote]);
+  }
+  
+  if (maxNote !== null && maxNote !== undefined) {
+    filter.push(['<=', ['to-number', ['get', 'note_college'], 20], maxNote]);
+  }
+  
+  // Si aucun filtre, on affiche tout
+  if (filter.length === 1) {
+    filter = null;
+  }
+  
+  // Appliquer le filtre
+  window.map.setFilter(layerId, filter);
+  
+  console.log(`Collèges filtrés: Note entre ${minNote || 'min'} et ${maxNote || 'max'}`);
+};
+
+// Fonction pour réinitialiser les filtres écoles
+window.resetEcolesFilter = function() {
+  window.filterEcolesByIPS(null, null);
+};
+
+// Fonction pour réinitialiser les filtres collèges
+window.resetCollegesFilter = function() {
+  window.filterCollegesByNote(null, null);
 };
 
     // Démarrer l’initialisation
