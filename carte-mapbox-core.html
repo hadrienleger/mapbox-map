@@ -74,10 +74,10 @@
       iris: {
         source: { type: 'vector', url: 'mapbox://hadrienleger.ak5sb828' },
         sourceLayer: 'iris-ign-petite-etendue-wgs84-7y17me',
-        basePaint: {
-          'fill-color': ['case', ['boolean', ['feature-state', 'clicked'], false], '#d0a4f7', '#7b2cbf'],
-          'fill-opacity': 0.7
-        },
+basePaint: {
+  'fill-color': '#8A2BE2',  // Couleur fixe au lieu de feature-state
+  'fill-opacity': 0.25
+},
         idField: 'CODE_IRIS',
         clickable: true,
         useFeatureStateClicked: true,
@@ -714,6 +714,10 @@ prix_median: {
  * GESTIONNAIRE DE LAYERS - Version 4 FINALE
  * Remplace complètement le système zoomToIris
  */
+/**
+ * GESTIONNAIRE DE LAYERS - Version 4 FINALE
+ * Remplace complètement le système zoomToIris
+ */
 window.layerManager = {
   // État des layers par outil
   state: {
@@ -995,34 +999,56 @@ window.layerManager = {
     // Réinitialiser tous les feature-states pour éviter les couleurs parasites
     this.resetAllIrisFeatureStates();
 
-    // Créer les nouveaux layers
+    // Créer les nouveaux layers avec des valeurs explicites
     try {
+      // Layer de remplissage avec couleur FORCÉE
       window.map.addLayer({
         id: fillLayerId,
         type: 'fill',
         source: 'iris',
         'source-layer': window.layerConfigs['iris'].sourceLayer,
         paint: {
-          'fill-color': '#8A2BE2',  // Couleur fixe - pas de feature-state
-          'fill-opacity': 0.25      // Opacity standard
+          'fill-color': '#8A2BE2',  // Couleur EXPLICITE
+          'fill-opacity': 0.25      // Opacity EXPLICITE  
         },
         filter: ['match', ['get', 'CODE_IRIS'], codes, true, false]
       });
 
+      // Forcer la couleur après création du layer (au cas où)
+      window.map.setPaintProperty(fillLayerId, 'fill-color', '#8A2BE2');
+      window.map.setPaintProperty(fillLayerId, 'fill-opacity', 0.25);
+
+      // Layer de contour avec couleur FORCÉE
       window.map.addLayer({
         id: outlineLayerId,
         type: 'line',
         source: 'iris',
         'source-layer': window.layerConfigs['iris'].sourceLayer,
         paint: {
-          'line-color': '#8A2BE2',  // Même couleur que le fill
+          'line-color': '#8A2BE2',  // Couleur EXPLICITE
           'line-width': 2,
           'line-opacity': 1
         },
         filter: ['match', ['get', 'CODE_IRIS'], codes, true, false]
       });
 
+      // Forcer la couleur après création du layer (au cas où)
+      window.map.setPaintProperty(outlineLayerId, 'line-color', '#8A2BE2');
+
       console.log(`✅ IRIS ${tool} créés: ${fillLayerId}, ${outlineLayerId}`);
+
+      // FORCER les couleurs après création (toujours, même en cas de retry)
+      setTimeout(() => {
+        if (window.map.getLayer(fillLayerId)) {
+          window.map.setPaintProperty(fillLayerId, 'fill-color', '#8A2BE2');
+          window.map.setPaintProperty(fillLayerId, 'fill-opacity', 0.25);
+          console.log(`🎨 Couleurs forcées pour ${fillLayerId}`);
+        }
+        if (window.map.getLayer(outlineLayerId)) {
+          window.map.setPaintProperty(outlineLayerId, 'line-color', '#8A2BE2');
+          console.log(`🎨 Couleurs forcées pour ${outlineLayerId}`);
+        }
+      }, 100);
 
       // Ajouter les interactions de clic
       this.addIrisClickListeners(fillLayerId);
