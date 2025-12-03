@@ -1,0 +1,161 @@
+<div id="location-map-container" style="width:100%;height:230px;border-radius:16px;overflow:hidden;"></div>
+
+<link href="https://api.mapbox.com/mapbox-gl-js/v2.15.0/mapbox-gl.css" rel="stylesheet" />
+<script src="https://api.mapbox.com/mapbox-gl-js/v2.15.0/mapbox-gl.js"></script>
+<script src="https://api.mapbox.com/mapbox-gl-js/plugins/mapbox-gl-geocoder/v4.7.2/mapbox-gl-geocoder.min.js"></script>
+<link
+  rel="stylesheet"
+  href="https://api.mapbox.com/mapbox-gl-js/plugins/mapbox-gl-geocoder/v4.7.2/mapbox-gl-geocoder.css"
+/>
+
+<script>
+  // 1) MAP GLOBALE POUR LA SHEET
+  window.locationMap = null;
+
+  function initLocationMap() {
+    if (window.locationMap) return;
+
+    const container = document.getElementById('location-map-container');
+    if (!container || !window.mapboxgl) {
+      setTimeout(initLocationMap, 300);
+      return;
+    }
+
+    mapboxgl.accessToken = 'pk.eyJ1IjoiaGFkcmllbmxlZ2VyIiwiYSI6ImNtYXBjbDlzYTBncGoyaXNhN3dpajI3b3MifQ.TatwRPDuazMQH2DfSkxv2w';
+
+    window.locationMap = new mapboxgl.Map({
+      container: 'location-map-container',
+      style: 'mapbox://styles/mapbox/light-v11',
+      center: [2.35, 48.86], // centre par défaut (Paris)
+      zoom: 10
+    });
+  }
+
+  // Lance l'init quand la sheet est montée
+  document.addEventListener('DOMContentLoaded', initLocationMap);
+  setTimeout(initLocationMap, 500);
+
+  // 2) FONCTIONS EXPOSÉES À BUBBLE
+  //    -> à appeler via Run javascript
+
+  // a) Afficher les polygones de collectivités (mode "Par zones")
+  window.locationMap_showCollectivitePolygons = function (geojson) {
+    const map = window.locationMap;
+    if (!map || !geojson) return;
+
+    // --- INSPIRÉ DE window.showCollectivitePolygons DANS carte-mapbox-core.html ---
+    // 1. supprimer ancienne source/layers si existent
+    if (map.getLayer('loc-collectivites-fill')) map.removeLayer('loc-collectivites-fill');
+    if (map.getLayer('loc-collectivites-outline')) map.removeLayer('loc-collectivites-outline');
+    if (map.getSource('loc-collectivites')) map.removeSource('loc-collectivites');
+
+    map.addSource('loc-collectivites', {
+      type: 'geojson',
+      data: geojson
+    });
+
+    map.addLayer({
+      id: 'loc-collectivites-fill',
+      type: 'fill',
+      source: 'loc-collectivites',
+      paint: {
+        'fill-color': '#9B51E0',
+        'fill-opacity': 0.25
+      }
+    });
+
+    map.addLayer({
+      id: 'loc-collectivites-outline',
+      type: 'line',
+      source: 'loc-collectivites',
+      paint: {
+        'line-color': '#9B51E0',
+        'line-width': 2,
+        'line-opacity': 0.8
+      }
+    });
+
+    // 2. zoom/centrer sur le bbox du GeoJSON (comme dans ton core)
+    const bbox = turf.bbox(geojson);
+    map.fitBounds(bbox, { padding: 20, duration: 0 });
+  };
+
+  // b) Afficher la zone de rayon (mode "Par rayon")
+  window.locationMap_showRadius = function (centerLng, centerLat, radiusKm) {
+    const map = window.locationMap;
+    if (!map || !centerLng || !centerLat || !radiusKm) return;
+
+    // --- INSPIRÉ DE ton code de cercle dans carte-mapbox-core.html ---
+    // On crée un GeoJSON cercle avec turf.circle
+    const circle = turf.circle([centerLng, centerLat], radiusKm, {
+      steps: 128,
+      units: 'kilometers'
+    });
+
+    if (map.getLayer('loc-radius-fill')) map.removeLayer('loc-radius-fill');
+    if (map.getLayer('loc-radius-outline')) map.removeLayer('loc-radius-outline');
+    if (map.getSource('loc-radius')) map.removeSource('loc-radius');
+
+    map.addSource('loc-radius', {
+      type: 'geojson',
+      data: circle
+    });
+
+    map.addLayer({
+      id: 'loc-radius-fill',
+      type: 'fill',
+      source: 'loc-radius',
+      paint: {
+        'fill-color': '#9B51E0',
+        'fill-opacity': 0.18
+      }
+    });
+
+    map.addLayer({
+      id: 'loc-radius-outline',
+      type: 'line',
+      source: 'loc-radius',
+      paint: {
+        'line-color': '#9B51E0',
+        'line-width': 2,
+        'line-opacity': 0.9
+      }
+    });
+
+    map.fitBounds(turf.bbox(circle), { padding: 20, duration: 0 });
+  };
+
+  // c) Initialiser le geocoder (mode Par rayon)
+  window.locationMap_initGeocoder = function () {
+    const map = window.locationMap;
+    if (!map || !window.MapboxGeocoder) return;
+
+    const container = document.getElementById('radius-search-container');
+    if (!container) return;
+
+    // éviter plusieurs geocoders
+    if (container.dataset.geocoderInit === '1') return;
+    container.dataset.geocoderInit = '1';
+
+    const geocoder = new MapboxGeocoder({
+      accessToken: mapboxgl.accessToken,
+      mapboxgl: mapboxgl,
+      marker: false,
+      placeholder: 'Adresse ou lieu…',
+      language: 'fr'
+    });
+
+    container.innerHTML = '';
+    container.appendChild(geocoder.onAdd(map));
+
+    geocoder.on('result', (e) => {
+      const [lng, lat] = e.result.center;
+      // on stocke les coords sur window pour que Bubble puisse les lire
+      window.locationMap_lastCenter = { lng, lat };
+      // petit marker visuel
+      new mapboxgl.Marker({ color: '#2F6BC7' })
+        .setLngLat([lng, lat])
+        .addTo(map);
+    });
+  };
+</script>
