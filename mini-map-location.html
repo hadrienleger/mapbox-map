@@ -137,23 +137,37 @@
       window.locationMap_lastCollectivitesPad = 60;
 
       console.log("📦 BBox calculée:", bbox);
+      console.log("🔍 map.loaded() =", map.loaded());
+      console.log("🔍 map.isStyleLoaded() =", map.isStyleLoaded());
 
-      // CRITIQUE: S'assurer que la carte est prête avant fitBounds
-      if (map.loaded()) {
-        map.fitBounds(bbox, {
-          padding: 60,
-          duration: 600
-        });
-        console.log("✅ fitBounds appliqué immédiatement");
-      } else {
-        map.once('load', () => {
+      // SOLUTION ROBUSTE: Toujours exécuter avec un micro-délai
+      // pour laisser le temps à Mapbox de se synchroniser
+      const executeFitBounds = () => {
+        try {
           map.fitBounds(bbox, {
             padding: 60,
             duration: 600
           });
-          console.log("✅ fitBounds appliqué après chargement");
-        });
-      }
+          console.log("✅ fitBounds appliqué avec succès");
+        } catch (e) {
+          console.error("❌ Erreur fitBounds:", e);
+          // Réessayer après un délai en cas d'erreur
+          setTimeout(() => {
+            try {
+              map.fitBounds(bbox, {
+                padding: 60,
+                duration: 600
+              });
+              console.log("✅ fitBounds appliqué (2e tentative)");
+            } catch (e2) {
+              console.error("❌ Échec définitif fitBounds:", e2);
+            }
+          }, 300);
+        }
+      };
+
+      // Toujours utiliser un délai court pour la fiabilité
+      setTimeout(executeFitBounds, 100);
     } catch (error) {
       console.error("❌ Erreur lors du calcul de bbox:", error);
     }
@@ -191,13 +205,21 @@
       try {
         const bbox = turf.bbox(remaining);
         window.locationMap_lastCollectivitesBBox = bbox;
-        map.fitBounds(bbox, {
-          padding: window.locationMap_lastCollectivitesPad || 60,
-          duration: 600
-        });
-        console.log("✅ Carte ajustée après suppression");
+        
+        // Utiliser le même système de délai
+        setTimeout(() => {
+          try {
+            map.fitBounds(bbox, {
+              padding: window.locationMap_lastCollectivitesPad || 60,
+              duration: 600
+            });
+            console.log("✅ Carte ajustée après suppression");
+          } catch (e) {
+            console.error("❌ Erreur fitBounds après suppression:", e);
+          }
+        }, 100);
       } catch (error) {
-        console.error("❌ Erreur fitBounds après suppression:", error);
+        console.error("❌ Erreur calcul bbox après suppression:", error);
       }
     } else {
       // plus de collectivités : on nettoie
@@ -285,10 +307,29 @@
     container.innerHTML = '';
     container.appendChild(geocoder.onAdd(map));
     
+    // Fonction pour réafficher les boutons
+    const showButtons = () => {
+        const buttonGroup = document.getElementById('fg_group_rayon');
+        if (buttonGroup) {
+            buttonGroup.style.visibility = 'visible';
+            buttonGroup.style.pointerEvents = 'auto';
+            console.log('👁️ Boutons réaffichés');
+        }
+    };
+    
+    // Fonction pour cacher les boutons
+    const hideButtons = () => {
+        const buttonGroup = document.getElementById('fg_group_rayon');
+        if (buttonGroup) {
+            buttonGroup.style.visibility = 'hidden';
+            buttonGroup.style.pointerEvents = 'none';
+            console.log('🙈 Boutons cachés');
+        }
+    };
+    
     // === FORCER LE Z-INDEX DES SUGGESTIONS DÈS LEUR APPARITION ===
     const observer = new MutationObserver(() => {
         const suggestions = container.querySelector('.suggestions');
-        const buttonGroup = document.getElementById('fg_group_rayon');
         
         if (suggestions) {
             suggestions.style.position = 'absolute';
@@ -297,17 +338,9 @@
             suggestions.style.display = 'block';
             suggestions.style.pointerEvents = 'auto';
             
-            // Cacher temporairement les boutons
-            if (buttonGroup) {
-                buttonGroup.style.visibility = 'hidden';
-                buttonGroup.style.pointerEvents = 'none';
-            }
+            hideButtons();
         } else {
-            // Réafficher les boutons
-            if (buttonGroup) {
-                buttonGroup.style.visibility = 'visible';
-                buttonGroup.style.pointerEvents = 'auto';
-            }
+            showButtons();
         }
     });
     
@@ -316,6 +349,9 @@
         subtree: true
     });
     
+    // === ÉVÉNEMENTS DU GEOCODER POUR RÉAFFICHER LES BOUTONS ===
+    
+    // Quand une suggestion est sélectionnée
     geocoder.on('result', (e) => {
         const [lng, lat] = e.result.center;
         window.locationMap_lastCenter = { lng, lat };
@@ -325,6 +361,29 @@
         }
         
         map.flyTo({ center: [lng, lat], zoom: 12 });
+        
+        // IMPORTANT: Réafficher les boutons après sélection
+        setTimeout(showButtons, 100);
     });
+    
+    // Quand l'utilisateur efface le texte (clic sur X ou backspace)
+    geocoder.on('clear', () => {
+        console.log('🧹 Recherche effacée');
+        showButtons();
+    });
+    
+    // Fallback: Réafficher les boutons si l'input perd le focus
+    const input = container.querySelector('.mapboxgl-ctrl-geocoder--input');
+    if (input) {
+        input.addEventListener('blur', () => {
+            setTimeout(() => {
+                // Vérifier qu'il n'y a vraiment plus de suggestions
+                const suggestions = container.querySelector('.suggestions');
+                if (!suggestions || suggestions.children.length === 0) {
+                    showButtons();
+                }
+            }, 200);
+        });
+    }
   };
 </script>
