@@ -2,11 +2,7 @@
 
 <link href="https://api.mapbox.com/mapbox-gl-js/v2.15.0/mapbox-gl.css" rel="stylesheet" />
 <script src="https://api.mapbox.com/mapbox-gl-js/v2.15.0/mapbox-gl.js"></script>
-<script src="https://api.mapbox.com/mapbox-gl-js/plugins/mapbox-gl-geocoder/v4.7.2/mapbox-gl-geocoder.min.js"></script>
-<link
-  rel="stylesheet"
-  href="https://api.mapbox.com/mapbox-gl-js/plugins/mapbox-gl-geocoder/v4.7.2/mapbox-gl-geocoder.css"
-/>
+<script src="https://api.mapbox.com/search-js/v1.0.0/web.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/@turf/turf@6.5.0/turf.min.js"></script>
 
 <script>
@@ -27,6 +23,14 @@
   // Dernière emprise utilisée pour fitBounds
   window.locationMap_lastCollectivitesBBox = null;
   window.locationMap_lastCollectivitesPad  = 60;
+
+  // ====== RAYON (MODE PAR RAYON) ======
+  
+  // Variables globales pour le mode rayon
+  window.locationMap_radiusCenter = null;   // {lon, lat}
+  window.locationMap_radiusKm     = 5;      // distance en km par défaut
+  window.locationMap_radiusMarker = null;   // marqueur Mapbox
+  window.locationMap_radiusData   = { type: 'FeatureCollection', features: [] };
 
   function initLocationMap() {
     if (window.locationMap) return;
@@ -173,8 +177,10 @@
     }
   };
 
-  // b) Supprimer UNE collectivité par son code INSEE et refitBounds
-  window.locationMap_removeCollectivite = function (code) {
+  // ====== FONCTIONS POUR LE RAYON (MODE PAR RAYON) ======
+  
+  // Dessiner le cercle de rayon (fonction interne)
+  function drawLocationRadius() {
     console.log('🗑️ Suppression collectivité:', code);
     
     const map = window.locationMap;
@@ -232,80 +238,183 @@
     }
   };
 
-  // c) Afficher la zone de rayon (mode "Par rayon")
-  window.locationMap_showRadius = function (centerLng, centerLat, radiusKm) {
-    const map = window.locationMap;
-    if (!map || !centerLng || !centerLat || !radiusKm) return;
+  // b) Supprimer UNE collectivité par son code INSEE et refitBounds
+    console.log("➡️ drawLocationRadius appelée:", { 
+      center: window.locationMap_radiusCenter, 
+      radiusKm: window.locationMap_radiusKm 
+    });
 
-    // Vérifier que la carte est chargée
-    if (!map.loaded()) {
-      map.once('load', () => {
-        window.locationMap_showRadius(centerLng, centerLat, radiusKm);
-      });
+    const map = window.locationMap;
+    if (!map || !map.loaded()) {
+      console.warn("🛑 Carte non chargée");
       return;
     }
 
-    const circle = turf.circle([centerLng, centerLat], radiusKm, {
-      steps: 128,
-      units: 'kilometers'
-    });
+    if (!window.locationMap_radiusCenter || 
+        typeof window.locationMap_radiusCenter.lon !== 'number' || 
+        typeof window.locationMap_radiusCenter.lat !== 'number') {
+      console.warn("🛑 Centre du rayon invalide");
+      return;
+    }
 
-    if (map.getLayer('loc-radius-fill')) map.removeLayer('loc-radius-fill');
-    if (map.getLayer('loc-radius-outline')) map.removeLayer('loc-radius-outline');
-    if (map.getSource('loc-radius')) map.removeSource('loc-radius');
+    if (typeof window.locationMap_radiusKm !== 'number' || window.locationMap_radiusKm <= 0) {
+      console.warn("🛑 Rayon invalide, utilisation de 5km par défaut");
+      window.locationMap_radiusKm = 5;
+    }
 
-    map.addSource('loc-radius', {
-      type: 'geojson',
-      data: circle
-    });
+    // Générer le GeoJSON du cercle
+    let geojson;
+    try {
+      const circleFeature = turf.circle(
+        [window.locationMap_radiusCenter.lon, window.locationMap_radiusCenter.lat], 
+        window.locationMap_radiusKm, 
+        { steps: 64, units: 'kilometers' }
+      );
+      geojson = {
+        type: 'FeatureCollection',
+        features: [circleFeature]
+      };
+    } catch (error) {
+      console.error("🛑 Erreur génération cercle:", error);
+      return;
+    }
 
-    map.addLayer({
-      id: 'loc-radius-fill',
-      type: 'fill',
-      source: 'loc-radius',
-      paint: {
-        'fill-color': '#9B51E0',
-        'fill-opacity': 0.18
+    // Sauvegarder dans window.locationMap_radiusData
+    window.locationMap_radiusData = geojson;
+    console.log("✅ Données rayon sauvegardées:", geojson.features.length, "features");
+
+    // Mettre à jour ou créer la source et les couches
+    if (map.getSource('loc-radius')) {
+      map.getSource('loc-radius').setData(geojson);
+      console.log("🔄 Source rayon mise à jour");
+    } else {
+      try {
+        map.addSource('loc-radius', { type: 'geojson', data: geojson });
+        map.addLayer({
+          id: 'loc-radius-fill',
+          type: 'fill',
+          source: 'loc-radius',
+          paint: { 
+            'fill-color': '#8A2BE2', 
+            'fill-opacity': 0.25 
+          }
+        });
+        map.addLayer({
+          id: 'loc-radius-outline',
+          type: 'line',
+          source: 'loc-radius',
+          paint: { 
+            'line-color': '#8A2BE2', 
+            'line-width': 2 
+          }
+        });
+        console.log("➕ Source et layers rayon créés");
+      } catch (error) {
+        console.error("🛑 Erreur ajout source/layers rayon:", error);
       }
-    });
+    }
 
-    map.addLayer({
-      id: 'loc-radius-outline',
-      type: 'line',
-      source: 'loc-radius',
-      paint: {
-        'line-color': '#9B51E0',
-        'line-width': 2,
-        'line-opacity': 0.9
-      }
-    });
+    // Ajuster la carte sur le cercle
+    try {
+      const bbox = turf.bbox(geojson);
+      setTimeout(() => {
+        map.fitBounds(bbox, { 
+          padding: 40,  // Padding pour voir le cercle entier confortablement
+          duration: 600 
+        });
+        console.log("✅ Carte ajustée sur le rayon");
+      }, 100);
+    } catch (error) {
+      console.error("🛑 Erreur fitBounds rayon:", error);
+    }
+  }
 
-    map.fitBounds(turf.bbox(circle), { padding: 20, duration: 600 });
-    console.log("✅ Rayon affiché et carte ajustée");
+  // c3) Exposé à Bubble : changer le rayon
+  window.locationMap_updateRadius = function(km) {
+    console.log("📍 locationMap_updateRadius appelée avec:", km);
+    
+    if (typeof km !== 'number' || isNaN(km) || km <= 0) {
+      console.warn("🛑 Rayon invalide, utilisation de 5km par défaut");
+      window.locationMap_radiusKm = 5;
+    } else {
+      window.locationMap_radiusKm = km;
+    }
+    
+    drawLocationRadius();
   };
 
-  // d) Initialiser le geocoder (mode Par rayon)
+  // c4) Exposé à Bubble : effacer le rayon
+  window.locationMap_clearRadius = function() {
+    console.log("🧹 locationMap_clearRadius appelée");
+
+    const map = window.locationMap;
+    
+    // 1. Supprimer le cercle
+    if (map && map.getSource('loc-radius')) {
+      if (map.getLayer('loc-radius-fill')) {
+        map.removeLayer('loc-radius-fill');
+        console.log("✅ Layer loc-radius-fill supprimé");
+      }
+      if (map.getLayer('loc-radius-outline')) {
+        map.removeLayer('loc-radius-outline');
+        console.log("✅ Layer loc-radius-outline supprimé");
+      }
+      map.removeSource('loc-radius');
+      console.log("✅ Source loc-radius supprimée");
+    }
+
+    // 2. Supprimer le marqueur
+    if (window.locationMap_radiusMarker) {
+      window.locationMap_radiusMarker.remove();
+      window.locationMap_radiusMarker = null;
+      console.log("✅ Marqueur supprimé");
+    }
+
+    // 3. Réinitialiser les variables
+    window.locationMap_radiusCenter = null;
+    window.locationMap_radiusKm = 5;
+    window.locationMap_radiusData = { type: 'FeatureCollection', features: [] };
+    console.log("✅ Variables rayon réinitialisées");
+  };
+
+  // d) Initialiser la SearchBox (mode Par rayon) - VERSION SEARCHBOX API
   window.locationMap_initGeocoder = function () {
     const map = window.locationMap;
-    if (!map || !window.MapboxGeocoder) return;
+    if (!map || !window.mapboxsearch) {
+      console.log("⏳ En attente de mapboxsearch...");
+      setTimeout(window.locationMap_initGeocoder, 300);
+      return;
+    }
     
     const container = document.getElementById('radius-search-container');
-    if (!container) return;
+    if (!container) {
+      console.log("⏳ Conteneur radius-search-container introuvable");
+      setTimeout(window.locationMap_initGeocoder, 300);
+      return;
+    }
     
-    // éviter plusieurs geocoders
-    if (container.dataset.geocoderInit === '1') return;
-    container.dataset.geocoderInit = '1';
+    // éviter plusieurs searchbox
+    if (container.dataset.searchboxInit === '1') {
+      console.log("✅ SearchBox déjà initialisée");
+      return;
+    }
+    container.dataset.searchboxInit = '1';
     
-    const geocoder = new MapboxGeocoder({
-        accessToken: mapboxgl.accessToken,
-        mapboxgl: mapboxgl,
-        marker: false,
-        placeholder: 'Adresse ou lieu…',
-        language: 'fr'
-    });
+    // Créer la SearchBox (API moderne)
+    const sb = new mapboxsearch.MapboxSearchBox();
+    sb.accessToken = mapboxgl.accessToken;
+    sb.options = {
+      types: 'address,poi',
+      language: 'fr',
+      placeholder: 'Adresse ou lieu…'
+    };
+    sb.mapboxgl = mapboxgl;
+    sb.marker = false;
+    sb.bindMap(map);
     
     container.innerHTML = '';
-    container.appendChild(geocoder.onAdd(map));
+    container.appendChild(sb);
+    sb.style.width = '100%';
     
     // Fonction pour réafficher les boutons
     const showButtons = () => {
@@ -327,11 +436,12 @@
         }
     };
     
-    // === FORCER LE Z-INDEX DES SUGGESTIONS DÈS LEUR APPARITION ===
+    // Observer les suggestions pour cacher/afficher les boutons
     const observer = new MutationObserver(() => {
         const suggestions = container.querySelector('.suggestions');
         
-        if (suggestions) {
+        if (suggestions && suggestions.children.length > 0) {
+            // Forcer le z-index des suggestions
             suggestions.style.position = 'absolute';
             suggestions.style.zIndex = '999999';
             suggestions.style.visibility = 'visible';
@@ -349,41 +459,67 @@
         subtree: true
     });
     
-    // === ÉVÉNEMENTS DU GEOCODER POUR RÉAFFICHER LES BOUTONS ===
-    
-    // Quand une suggestion est sélectionnée
-    geocoder.on('result', (e) => {
-        const [lng, lat] = e.result.center;
-        window.locationMap_lastCenter = { lng, lat };
+    // === ÉVÉNEMENT: Sélection d'une suggestion ===
+    sb.addEventListener('retrieve', (e) => {
+        const [lon, lat] = e.detail.features[0].geometry.coordinates;
         
-        if (typeof bubble_fn_radiusCenter === 'function') {
-            bubble_fn_radiusCenter({ output1: lng, output2: lat });
+        console.log('📍 Lieu sélectionné:', lon, lat);
+        
+        // 1) Sauvegarder le centre pour le cercle
+        window.locationMap_radiusCenter = { lon, lat };
+        
+        // 2) Créer ou déplacer le marqueur
+        if (!window.locationMap_radiusMarker) {
+            window.locationMap_radiusMarker = new mapboxgl.Marker({ 
+                color: '#8A2BE2' 
+            })
+            .setLngLat([lon, lat])
+            .addTo(map);
+            console.log('➕ Marqueur créé');
+        } else {
+            window.locationMap_radiusMarker.setLngLat([lon, lat]);
+            console.log('🔄 Marqueur déplacé');
         }
         
-        map.flyTo({ center: [lng, lat], zoom: 12 });
+        // 3) Dessiner le cercle avec le rayon actuel (1km par défaut)
+        // Le cercle fera automatiquement un fitBounds pour se montrer entier
+        if (!window.locationMap_radiusKm || window.locationMap_radiusKm <= 0) {
+            window.locationMap_radiusKm = 1; // Rayon par défaut: 1km
+        }
+        drawLocationRadius();
         
-        // IMPORTANT: Réafficher les boutons après sélection
-        setTimeout(showButtons, 100);
+        // 4) Prévenir Bubble si la fonction existe
+        if (typeof bubble_fn_radiusCenter === 'function') {
+            bubble_fn_radiusCenter({ output1: lon, output2: lat });
+        }
+        
+        // 5) Réafficher les boutons après sélection
+        setTimeout(showButtons, 50);
     });
     
-    // Quand l'utilisateur efface le texte (clic sur X ou backspace)
-    geocoder.on('clear', () => {
+    // === ÉVÉNEMENT: Effacement de la recherche ===
+    sb.addEventListener('clear', () => {
         console.log('🧹 Recherche effacée');
+        
+        // Effacer le marqueur et le cercle
+        window.locationMap_clearRadius();
+        
         showButtons();
     });
     
     // Fallback: Réafficher les boutons si l'input perd le focus
-    const input = container.querySelector('.mapboxgl-ctrl-geocoder--input');
+    const input = container.querySelector('input');
     if (input) {
         input.addEventListener('blur', () => {
             setTimeout(() => {
-                // Vérifier qu'il n'y a vraiment plus de suggestions
                 const suggestions = container.querySelector('.suggestions');
                 if (!suggestions || suggestions.children.length === 0) {
                     showButtons();
                 }
-            }, 200);
+            }, 150);
         });
     }
+    
+    console.log('✅ SearchBox initialisée sur radius-search-container');
   };
 </script>
