@@ -1,0 +1,330 @@
+<div id="location-map-container" style="width:100%;height:230px;border-radius:16px;overflow:hidden;"></div>
+
+<link href="https://api.mapbox.com/mapbox-gl-js/v2.15.0/mapbox-gl.css" rel="stylesheet" />
+<script src="https://api.mapbox.com/mapbox-gl-js/v2.15.0/mapbox-gl.js"></script>
+<script src="https://api.mapbox.com/mapbox-gl-js/plugins/mapbox-gl-geocoder/v4.7.2/mapbox-gl-geocoder.min.js"></script>
+<link
+  rel="stylesheet"
+  href="https://api.mapbox.com/mapbox-gl-js/plugins/mapbox-gl-geocoder/v4.7.2/mapbox-gl-geocoder.css"
+/>
+<script src="https://cdn.jsdelivr.net/npm/@turf/turf@6.5.0/turf.min.js"></script>
+
+<script>
+  // 1) MAP GLOBALE POUR LA SHEET
+  window.locationMap = null;
+
+  // ====== COLLECTIVITÉS (MINI-CARTE) ======
+
+  // FC complet des collectivités actuellement affichées
+  window.locationMap_collectivitesData = {
+    type: "FeatureCollection",
+    features: []
+  };
+
+  // Set des codes INSEE des collectivités affichées
+  window.locationMap_collectiviteCodes = new Set();
+
+  // Dernière emprise utilisée pour fitBounds
+  window.locationMap_lastCollectivitesBBox = null;
+  window.locationMap_lastCollectivitesPad  = 60;
+
+  function initLocationMap() {
+    if (window.locationMap) return;
+
+    const container = document.getElementById('location-map-container');
+    if (!container || !window.mapboxgl) {
+      setTimeout(initLocationMap, 300);
+      return;
+    }
+
+    mapboxgl.accessToken = 'pk.eyJ1IjoiaGFkcmllbmxlZ2VyIiwiYSI6ImNtYXBjbDlzYTBncGoyaXNhN3dpajI3b3MifQ.TatwRPDuazMQH2DfSkxv2w';
+
+    window.locationMap = new mapboxgl.Map({
+      container: 'location-map-container',
+      style: 'mapbox://styles/mapbox/light-v11',
+      center: [2.35, 48.86],
+      zoom: 10
+    });
+
+    console.log('✅ Mini-carte initialisée');
+  }
+
+  // Lance l'init quand la sheet est montée
+  document.addEventListener('DOMContentLoaded', initLocationMap);
+  setTimeout(initLocationMap, 500);
+
+  // 2) FONCTIONS EXPOSÉES À BUBBLE
+
+  // a) Afficher les polygones de collectivités (mode "Par zones")
+  window.locationMap_showCollectivitePolygons = function (fc) {
+    console.log('📍 locationMap_showCollectivitePolygons appelée avec', fc);
+    
+    const map = window.locationMap;
+    if (!map) {
+      console.warn("🛑 locationMap non initialisée pour showCollectivitePolygons");
+      return;
+    }
+
+    // Vérifier que la carte est chargée
+    if (!map.loaded()) {
+      console.log("⏳ Carte pas encore chargée, attente...");
+      map.once('load', () => {
+        window.locationMap_showCollectivitePolygons(fc);
+      });
+      return;
+    }
+
+    if (!fc || !fc.features || fc.features.length === 0) {
+      console.log("🧹 Aucune collectivité à afficher, nettoyage");
+      // Rien à afficher → on nettoie éventuellement
+      if (map.getSource("loc-collectivites")) {
+        ["loc-collectivites-fill", "loc-collectivites-outline"].forEach((id) => {
+          if (map.getLayer(id)) map.removeLayer(id);
+        });
+        map.removeSource("loc-collectivites");
+      }
+      window.locationMap_collectivitesData = {
+        type: "FeatureCollection",
+        features: []
+      };
+      window.locationMap_collectiviteCodes = new Set();
+      window.locationMap_lastCollectivitesBBox = null;
+      return;
+    }
+
+    // 1) Sauvegarder les données et les codes INSEE
+    window.locationMap_collectivitesData = fc;
+    window.locationMap_collectiviteCodes = new Set(
+      fc.features.map((f) => f.properties.code_insee)
+    );
+    
+    console.log("💾 Sauvegarde de", fc.features.length, "collectivités");
+
+    // 2) Source + layers (fill + outline)
+    if (map.getSource("loc-collectivites")) {
+      map.getSource("loc-collectivites").setData(fc);
+      console.log("🔄 Source mise à jour");
+    } else {
+      map.addSource("loc-collectivites", {
+        type: "geojson",
+        data: fc
+      });
+      map.addLayer({
+        id: "loc-collectivites-fill",
+        type: "fill",
+        source: "loc-collectivites",
+        paint: {
+          "fill-color": "#8A2BE2",
+          "fill-opacity": 0.25
+        }
+      });
+      map.addLayer({
+        id: "loc-collectivites-outline",
+        type: "line",
+        source: "loc-collectivites",
+        paint: {
+          "line-color": "#8A2BE2",
+          "line-width": 2
+        }
+      });
+      console.log("➕ Source et layers créés");
+    }
+
+    // 3) Calculer la bbox de TOUTES les collectivités et fitter la carte
+    try {
+      const bbox = turf.bbox(fc); // [minX, minY, maxX, maxY]
+      window.locationMap_lastCollectivitesBBox = bbox;
+      window.locationMap_lastCollectivitesPad = 60;
+
+      console.log("📦 BBox calculée:", bbox);
+
+      // CRITIQUE: S'assurer que la carte est prête avant fitBounds
+      if (map.loaded()) {
+        map.fitBounds(bbox, {
+          padding: 60,
+          duration: 600
+        });
+        console.log("✅ fitBounds appliqué immédiatement");
+      } else {
+        map.once('load', () => {
+          map.fitBounds(bbox, {
+            padding: 60,
+            duration: 600
+          });
+          console.log("✅ fitBounds appliqué après chargement");
+        });
+      }
+    } catch (error) {
+      console.error("❌ Erreur lors du calcul de bbox:", error);
+    }
+  };
+
+  // b) Supprimer UNE collectivité par son code INSEE et refitBounds
+  window.locationMap_removeCollectivite = function (code) {
+    console.log('🗑️ Suppression collectivité:', code);
+    
+    const map = window.locationMap;
+    if (!map || !map.getSource("loc-collectivites")) return;
+    if (!window.locationMap_collectiviteCodes.has(code)) return;
+
+    window.locationMap_collectiviteCodes.delete(code);
+
+    const remainingFeatures = Array.from(
+      window.locationMap_collectiviteCodes
+    )
+      .map((c) =>
+        window.locationMap_collectivitesData.features.find(
+          (f) => f.properties.code_insee === c
+        )
+      )
+      .filter(Boolean);
+
+    const remaining = {
+      type: "FeatureCollection",
+      features: remainingFeatures
+    };
+
+    window.locationMap_collectivitesData = remaining;
+    map.getSource("loc-collectivites").setData(remaining);
+
+    if (remaining.features.length) {
+      try {
+        const bbox = turf.bbox(remaining);
+        window.locationMap_lastCollectivitesBBox = bbox;
+        map.fitBounds(bbox, {
+          padding: window.locationMap_lastCollectivitesPad || 60,
+          duration: 600
+        });
+        console.log("✅ Carte ajustée après suppression");
+      } catch (error) {
+        console.error("❌ Erreur fitBounds après suppression:", error);
+      }
+    } else {
+      // plus de collectivités : on nettoie
+      ["loc-collectivites-fill", "loc-collectivites-outline"].forEach((id) => {
+        if (map.getLayer(id)) map.removeLayer(id);
+      });
+      map.removeSource("loc-collectivites");
+      window.locationMap_lastCollectivitesBBox = null;
+      console.log("🧹 Dernière collectivité supprimée, nettoyage complet");
+    }
+  };
+
+  // c) Afficher la zone de rayon (mode "Par rayon")
+  window.locationMap_showRadius = function (centerLng, centerLat, radiusKm) {
+    const map = window.locationMap;
+    if (!map || !centerLng || !centerLat || !radiusKm) return;
+
+    // Vérifier que la carte est chargée
+    if (!map.loaded()) {
+      map.once('load', () => {
+        window.locationMap_showRadius(centerLng, centerLat, radiusKm);
+      });
+      return;
+    }
+
+    const circle = turf.circle([centerLng, centerLat], radiusKm, {
+      steps: 128,
+      units: 'kilometers'
+    });
+
+    if (map.getLayer('loc-radius-fill')) map.removeLayer('loc-radius-fill');
+    if (map.getLayer('loc-radius-outline')) map.removeLayer('loc-radius-outline');
+    if (map.getSource('loc-radius')) map.removeSource('loc-radius');
+
+    map.addSource('loc-radius', {
+      type: 'geojson',
+      data: circle
+    });
+
+    map.addLayer({
+      id: 'loc-radius-fill',
+      type: 'fill',
+      source: 'loc-radius',
+      paint: {
+        'fill-color': '#9B51E0',
+        'fill-opacity': 0.18
+      }
+    });
+
+    map.addLayer({
+      id: 'loc-radius-outline',
+      type: 'line',
+      source: 'loc-radius',
+      paint: {
+        'line-color': '#9B51E0',
+        'line-width': 2,
+        'line-opacity': 0.9
+      }
+    });
+
+    map.fitBounds(turf.bbox(circle), { padding: 20, duration: 600 });
+    console.log("✅ Rayon affiché et carte ajustée");
+  };
+
+  // d) Initialiser le geocoder (mode Par rayon)
+  window.locationMap_initGeocoder = function () {
+    const map = window.locationMap;
+    if (!map || !window.MapboxGeocoder) return;
+    
+    const container = document.getElementById('radius-search-container');
+    if (!container) return;
+    
+    // éviter plusieurs geocoders
+    if (container.dataset.geocoderInit === '1') return;
+    container.dataset.geocoderInit = '1';
+    
+    const geocoder = new MapboxGeocoder({
+        accessToken: mapboxgl.accessToken,
+        mapboxgl: mapboxgl,
+        marker: false,
+        placeholder: 'Adresse ou lieu…',
+        language: 'fr'
+    });
+    
+    container.innerHTML = '';
+    container.appendChild(geocoder.onAdd(map));
+    
+    // === FORCER LE Z-INDEX DES SUGGESTIONS DÈS LEUR APPARITION ===
+    const observer = new MutationObserver(() => {
+        const suggestions = container.querySelector('.suggestions');
+        const buttonGroup = document.getElementById('fg_group_rayon');
+        
+        if (suggestions) {
+            suggestions.style.position = 'absolute';
+            suggestions.style.zIndex = '999999';
+            suggestions.style.visibility = 'visible';
+            suggestions.style.display = 'block';
+            suggestions.style.pointerEvents = 'auto';
+            
+            // Cacher temporairement les boutons
+            if (buttonGroup) {
+                buttonGroup.style.visibility = 'hidden';
+                buttonGroup.style.pointerEvents = 'none';
+            }
+        } else {
+            // Réafficher les boutons
+            if (buttonGroup) {
+                buttonGroup.style.visibility = 'visible';
+                buttonGroup.style.pointerEvents = 'auto';
+            }
+        }
+    });
+    
+    observer.observe(container, {
+        childList: true,
+        subtree: true
+    });
+    
+    geocoder.on('result', (e) => {
+        const [lng, lat] = e.result.center;
+        window.locationMap_lastCenter = { lng, lat };
+        
+        if (typeof bubble_fn_radiusCenter === 'function') {
+            bubble_fn_radiusCenter({ output1: lng, output2: lat });
+        }
+        
+        map.flyTo({ center: [lng, lat], zoom: 12 });
+    });
+  };
+</script>
